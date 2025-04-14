@@ -24,7 +24,6 @@ def init_db():
                 destination TEXT
             )
         ''')
-        # Example redirect
         conn.execute("INSERT OR IGNORE INTO redirects (short_id, destination) VALUES (?, ?)", ("blondart", "https://www.blondart.co.uk"))
 
 @app.route('/track')
@@ -58,3 +57,26 @@ def dashboard():
         """)
         stats = cursor.fetchall()
         return render_template('dashboard.html', stats=stats, new_code=new_code)
+
+@app.route('/add', methods=['POST'])
+def add_redirect():
+    short_id = request.form.get('short_id').strip()
+    destination = request.form.get('destination').strip()
+
+    if not short_id or not destination:
+        return "Missing fields", 400
+
+    with sqlite3.connect(DB_FILE) as conn:
+        try:
+            conn.execute("INSERT INTO redirects (short_id, destination) VALUES (?, ?)", (short_id, destination))
+            conn.commit()
+        except sqlite3.IntegrityError:
+            return "Shortcode already exists", 400
+
+    return redirect(f"/dashboard?new={short_id}")
+
+if __name__ == '__main__':
+    if not os.path.exists(DB_FILE):
+        init_db()
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
