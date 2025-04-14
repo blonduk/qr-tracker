@@ -67,8 +67,8 @@
     .qr-container img {
       border: 1px solid #ccc;
       margin-top: 1rem;
-      width: 500px;
-      height: 500px;
+      width: 300px;
+      height: 300px;
     }
     .download-button {
       display: inline-block;
@@ -94,13 +94,20 @@
       <a href="{{ request.host_url.rstrip('/') }}/track?id={{ new_code }}" target="_blank">
         {{ request.host_url.rstrip('/') }}/track?id={{ new_code }}
       </a>
-      <p>Here’s the QR code:</p>
+      <p>QR Code Preview:</p>
       <img 
         id="qr"
         src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data={{ request.host_url.rstrip('/') }}/track?id={{ new_code }}" 
         alt="QR Code for {{ new_code }}">
       <br>
-      <a class="download-button" href="https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&data={{ request.host_url.rstrip('/') }}/track?id={{ new_code }}" download="qr-{{ new_code }}.png">⬇️ Download QR Code</a>
+      <a 
+        class="download-button" 
+        href="https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&data={{ request.host_url.rstrip('/') }}/track?id={{ new_code }}" 
+        target="_blank" 
+        rel="noopener noreferrer"
+      >
+        ⬇️ Open High-Res QR to Save
+      </a>
     </div>
   {% endif %}
 
