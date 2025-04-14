@@ -66,4 +66,61 @@
   <h1>QR Tracker Dashboard</h1>
 
   {% if new_code %}
-    <div
+    <div style="text-align: center; margin-bottom: 2rem;">
+      <p>✅ <strong>{{ new_code }}</strong> was added successfully!</p>
+      <p>Here’s the QR code for: <code>{{ request.host_url.rstrip('/') }}/track?id={{ new_code }}</code></p>
+      <img src="https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl={{ request.host_url.rstrip('/') }}/track?id={{ new_code }}" alt="QR Code for {{ new_code }}">
+    </div>
+  {% endif %}
+
+  <div class="form-container">
+    <form method="POST" action="/add">
+      <input type="text" name="short_id" placeholder="Shortcode (e.g. insta)" required>
+      <input type="text" name="destination" placeholder="Destination URL (e.g. https://...)" required>
+      <button type="submit">Add New Redirect</button>
+    </form>
+  </div>
+
+  <div class="chart-container">
+    <canvas id="scanChart"></canvas>
+  </div>
+
+  <table>
+    <tr><th>Short Code</th><th>Scans</th></tr>
+    {% for code, count in stats %}
+      <tr><td>{{ code }}</td><td>{{ count }}</td></tr>
+    {% endfor %}
+  </table>
+
+  <script>
+    const labels = {{ stats | map(attribute=0) | list | tojson }};
+    const data = {{ stats | map(attribute=1) | list | tojson }};
+
+    const ctx = document.getElementById('scanChart').getContext('2d');
+    const scanChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Scans per Code',
+          data: data,
+          backgroundColor: 'rgba(54, 162, 235, 0.7)',
+          borderColor: 'rgba(54, 162, 235, 1)',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              stepSize: 1
+            }
+          }
+        }
+      }
+    });
+  </script>
+</body>
+</html>
