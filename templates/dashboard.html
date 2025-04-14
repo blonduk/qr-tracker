@@ -2,14 +2,117 @@
 <html>
 <head>
   <title>QR Tracker Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 2rem;
+      background: #f9f9f9;
+      color: #333;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    .form-container {
+      max-width: 500px;
+      margin: 0 auto 2rem auto;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    button {
+      width: 100%;
+      padding: 10px;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    .chart-container {
+      width: 90%;
+      max-width: 700px;
+      margin: 2rem auto;
+    }
+    table {
+      margin: 2rem auto;
+      border-collapse: collapse;
+      background: white;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+    th, td {
+      padding: 10px 20px;
+      border: 1px solid #ddd;
+    }
+    th {
+      background: #444;
+      color: white;
+    }
+  </style>
 </head>
 <body>
-  <h1>Scan Stats</h1>
-  <table border="1">
+  <h1>QR Tracker Dashboard</h1>
+
+  <div class="form-container">
+    <form method="POST" action="/add">
+      <input type="text" name="short_id" placeholder="Shortcode (e.g. insta)" required>
+      <input type="text" name="destination" placeholder="Destination URL (e.g. https://...)" required>
+      <button type="submit">Add New Redirect</button>
+    </form>
+  </div>
+
+  <div class="chart-container">
+    <canvas id="scanChart"></canvas>
+  </div>
+
+  <table>
     <tr><th>Short Code</th><th>Scans</th></tr>
     {% for code, count in stats %}
       <tr><td>{{ code }}</td><td>{{ count }}</td></tr>
     {% endfor %}
   </table>
+
+  <script>
+    const labels = {{ stats | map(attribute=0) | list | tojson }};
+    const data = {{ stats | map(attribute=1) | list | tojson }};
+
+    const ctx = document.getElementById('scanChart').getContext('2d');
+    const scanChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Scans per Code',
+          data: data,
+          backgroundColor: 'rgba(54, 162, 235, 0.7)',
+          borderColor: 'rgba(54, 162, 235, 1)',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              stepSize: 1
+            }
+          }
+        }
+      }
+    });
+  </script>
 </body>
 </html>
