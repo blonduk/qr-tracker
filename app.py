@@ -24,9 +24,8 @@ def init_db():
                 destination TEXT
             )
         ''')
-        # Example data
+        # Example redirect
         conn.execute("INSERT OR IGNORE INTO redirects (short_id, destination) VALUES (?, ?)", ("blondart", "https://www.blondart.co.uk"))
-        conn.execute("INSERT OR IGNORE INTO redirects (short_id, destination) VALUES (?, ?)", ("insta", "https://www.instagram.com/blondart"))
 
 @app.route('/track')
 def track():
@@ -39,7 +38,6 @@ def track():
         cursor = conn.cursor()
         cursor.execute("INSERT INTO logs (short_id, timestamp, user_agent, ip) VALUES (?, ?, ?, ?)", (short_id, timestamp, user_agent, ip))
         conn.commit()
-
         dest = cursor.execute("SELECT destination FROM redirects WHERE short_id = ?", (short_id,)).fetchone()
 
     if dest:
@@ -52,7 +50,6 @@ def dashboard():
     new_code = request.args.get('new')
     with sqlite3.connect(DB_FILE) as conn:
         cursor = conn.cursor()
-        # Show all redirects and their scan count, even if 0
         cursor.execute("""
             SELECT r.short_id, COUNT(l.id) as scan_count
             FROM redirects r
@@ -61,28 +58,3 @@ def dashboard():
         """)
         stats = cursor.fetchall()
         return render_template('dashboard.html', stats=stats, new_code=new_code)
-
-        
-@app.route('/add', methods=['POST'])
-def add_redirect():
-    short_id = request.form.get('short_id').strip()
-    destination = request.form.get('destination').strip()
-
-    if not short_id or not destination:
-        return "Missing fields", 400
-
-    with sqlite3.connect(DB_FILE) as conn:
-        try:
-            conn.execute("INSERT INTO redirects (short_id, destination) VALUES (?, ?)", (short_id, destination))
-            conn.commit()
-        except sqlite3.IntegrityError:
-            return "Shortcode already exists", 400
-
-    return redirect(f"/dashboard?new={short_id}")
-
-
-
-if __name__ == '__main__':
-    if not os.path.exists(DB_FILE):
-        init_db()
-    app.run(host='0.0.0.0', port=5000)
