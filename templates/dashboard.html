@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>QR Tracker Dashboard</title>
+</head>
+<body>
+  <h1>Scan Stats</h1>
+  <table border="1">
+    <tr><th>Short Code</th><th>Scans</th></tr>
+    {% for code, count in stats %}
+      <tr><td>{{ code }}</td><td>{{ count }}</td></tr>
+    {% endfor %}
+  </table>
+</body>
+</html>
