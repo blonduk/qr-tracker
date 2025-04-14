@@ -49,11 +49,19 @@ def track():
 
 @app.route('/dashboard')
 def dashboard():
+    new_code = request.args.get('new')
     with sqlite3.connect(DB_FILE) as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT short_id, COUNT(*) FROM logs GROUP BY short_id")
+        # Show all redirects and their scan count, even if 0
+        cursor.execute("""
+            SELECT r.short_id, COUNT(l.id) as scan_count
+            FROM redirects r
+            LEFT JOIN logs l ON r.short_id = l.short_id
+            GROUP BY r.short_id
+        """)
         stats = cursor.fetchall()
-        return render_template('dashboard.html', stats=stats)
+        return render_template('dashboard.html', stats=stats, new_code=new_code)
+
         
 @app.route('/add', methods=['POST'])
 def add_redirect():
