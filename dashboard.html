@@ -2,14 +2,80 @@
 <html>
 <head>
   <title>QR Tracker Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 2rem;
+      background: #f7f7f7;
+    }
+    h1 {
+      text-align: center;
+    }
+    .chart-container {
+      width: 80%;
+      max-width: 700px;
+      margin: 2rem auto;
+    }
+    table {
+      margin: 2rem auto;
+      border-collapse: collapse;
+      background: white;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+    th, td {
+      padding: 10px 20px;
+      border: 1px solid #ddd;
+    }
+    th {
+      background: #444;
+      color: white;
+    }
+  </style>
 </head>
 <body>
-  <h1>Scan Stats</h1>
-  <table border="1">
+  <h1>QR Scan Stats</h1>
+
+  <div class="chart-container">
+    <canvas id="scanChart"></canvas>
+  </div>
+
+  <table>
     <tr><th>Short Code</th><th>Scans</th></tr>
     {% for code, count in stats %}
       <tr><td>{{ code }}</td><td>{{ count }}</td></tr>
     {% endfor %}
   </table>
+
+  <script>
+    const labels = {{ stats | map(attribute=0) | list | tojson }};
+    const data = {{ stats | map(attribute=1) | list | tojson }};
+
+    const ctx = document.getElementById('scanChart').getContext('2d');
+    const scanChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Scans per Code',
+          data: data,
+          backgroundColor: 'rgba(54, 162, 235, 0.7)',
+          borderColor: 'rgba(54, 162, 235, 1)',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              stepSize: 1
+            }
+          }
+        }
+      }
+    });
+  </script>
 </body>
 </html>
