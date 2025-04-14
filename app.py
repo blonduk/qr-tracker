@@ -54,6 +54,7 @@ def dashboard():
         cursor.execute("SELECT short_id, COUNT(*) FROM logs GROUP BY short_id")
         stats = cursor.fetchall()
         return render_template('dashboard.html', stats=stats)
+        
 @app.route('/add', methods=['POST'])
 def add_redirect():
     short_id = request.form.get('short_id').strip()
@@ -70,6 +71,7 @@ def add_redirect():
             return "Shortcode already exists", 400
 
     return redirect("/dashboard")
+
 
 if __name__ == '__main__':
     if not os.path.exists(DB_FILE):
