@@ -60,23 +60,47 @@
       background: #444;
       color: white;
     }
+    .qr-container {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    .qr-container img {
+      border: 1px solid #ccc;
+      margin-top: 1rem;
+      width: 500px;
+      height: 500px;
+    }
+    .download-button {
+      display: inline-block;
+      margin-top: 1rem;
+      padding: 10px 20px;
+      background: #28a745;
+      color: white;
+      text-decoration: none;
+      border-radius: 6px;
+    }
+    .download-button:hover {
+      background: #218838;
+    }
   </style>
 </head>
 <body>
   <h1>QR Tracker Dashboard</h1>
 
   {% if new_code %}
-    <div style="text-align: center; margin-bottom: 2rem;">
+    <div class="qr-container">
       <p>✅ <strong>{{ new_code }}</strong> was added successfully!</p>
       <p>Tracking URL:</p>
       <a href="{{ request.host_url.rstrip('/') }}/track?id={{ new_code }}" target="_blank">
         {{ request.host_url.rstrip('/') }}/track?id={{ new_code }}
       </a>
-      <p>Here’s the QR code for that link:</p>
+      <p>Here’s the QR code:</p>
       <img 
-        src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data={{ request.host_url.rstrip('/') }}/track?id={{ new_code }}" 
-        alt="QR Code for {{ new_code }}" 
-        style="border: 1px solid red; margin-top: 1rem;">
+        id="qr"
+        src="https://api.qrserver.com/v1/create-qr-code/?size=500x500&data={{ request.host_url.rstrip('/') }}/track?id={{ new_code }}" 
+        alt="QR Code for {{ new_code }}">
+      <br>
+      <a class="download-button" href="https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&data={{ request.host_url.rstrip('/') }}/track?id={{ new_code }}" download="qr-{{ new_code }}.png">⬇️ Download QR Code</a>
     </div>
   {% endif %}
 
