@@ -70,7 +70,8 @@ def add_redirect():
         except sqlite3.IntegrityError:
             return "Shortcode already exists", 400
 
-    return redirect("/dashboard")
+    return redirect(f"/dashboard?new={short_id}")
+
 
 
 if __name__ == '__main__':
