@@ -68,8 +68,15 @@
   {% if new_code %}
     <div style="text-align: center; margin-bottom: 2rem;">
       <p>✅ <strong>{{ new_code }}</strong> was added successfully!</p>
-      <p>Here’s the QR code for: <code>{{ request.host_url.rstrip('/') }}/track?id={{ new_code }}</code></p>
-      <img src="https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl={{ request.host_url.rstrip('/') }}/track?id={{ new_code }}" alt="QR Code for {{ new_code }}">
+      <p>Tracking URL:</p>
+      <a href="{{ request.host_url.rstrip('/') }}/track?id={{ new_code }}" target="_blank">
+        {{ request.host_url.rstrip('/') }}/track?id={{ new_code }}
+      </a>
+      <p>Here’s the QR code for that link:</p>
+      <img 
+        src="https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl={{ request.host_url.rstrip('/') }}/track?id={{ new_code }}" 
+        alt="QR Code for {{ new_code }}" 
+        style="border: 1px solid red; margin-top: 1rem;">
     </div>
   {% endif %}
 
