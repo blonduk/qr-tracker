@@ -14,14 +14,6 @@
       text-align: center;
       margin-bottom: 2rem;
     }
-    {% if new_code %}
-  <div style="text-align: center; margin-bottom: 2rem;">
-    <p>✅ <strong>{{ new_code }}</strong> was added successfully!</p>
-    <p>Here’s the QR code for: <code>{{ request.host_url }}track?id={{ new_code }}</code></p>
-    <img src="https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl={{ request.host_url }}track?id={{ new_code }}" alt="QR Code for {{ new_code }}">
-  </div>
-{% endif %}
-
     .form-container {
       max-width: 500px;
       margin: 0 auto 2rem auto;
@@ -73,6 +65,14 @@
 <body>
   <h1>QR Tracker Dashboard</h1>
 
+  {% if new_code %}
+    <div style="text-align: center; margin-bottom: 2rem;">
+      <p>✅ <strong>{{ new_code }}</strong> was added successfully!</p>
+      <p>Here’s the QR code for: <code>{{ request.host_url }}track?id={{ new_code }}</code></p>
+      <img src="https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl={{ request.host_url }}track?id={{ new_code }}" alt="QR Code for {{ new_code }}">
+    </div>
+  {% endif %}
+
   <div class="form-container">
     <form method="POST" action="/add">
       <input type="text" name="short_id" placeholder="Shortcode (e.g. insta)" required>
@@ -121,6 +121,3 @@
         }
       }
     });
-  </script>
-</body>
-</html>
