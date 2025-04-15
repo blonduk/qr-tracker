@@ -88,8 +88,10 @@ def track():
         conn.commit()
         dest = cursor.execute("SELECT destination FROM redirects WHERE short_id = ?", (short_id,)).fetchone()
 
-    # Save to Google Sheet
+    # Debug print before and after writing to Google Sheets
+    print(f"[TRACK] Logging scan to Google Sheet: {short_id}")
     append_to_sheet([short_id, str(timestamp), ip, city, country, user_agent])
+    print("[TRACK] ✅ Sheet write called")
 
     if dest:
         return redirect(dest[0])
