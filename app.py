@@ -30,7 +30,6 @@ def append_to_sheet(data):
     except Exception as e:
         print("[SHEET ERROR]", e)
 
-# === Test Routes ===
 @app.route('/test-sheets')
 def test_sheets():
     try:
@@ -156,17 +155,20 @@ def add_redirect():
 
     return redirect(f"/dashboard?new={short_id}")
 
+# === View QR Code ===
 @app.route('/view-qr/<short_id>')
 def view_qr(short_id):
-    track_url = f"{request.host_url.rstrip('/')}/track?id={short_id}"
-    img = qrcode.make(track_url)
-    buf = io.BytesIO()
-    img.save(buf, format='PNG')
-    buf.seek(0)
-    return send_file(buf, mimetype='image/png', as_attachment=False)
-
+    try:
+        track_url = f"{request.host_url.rstrip('/')}/track?id={short_id}"
+        img = qrcode.make(track_url)
+        buf = io.BytesIO()
+        img.save(buf, format='PNG')
+        buf.seek(0)
+        return send_file(buf, mimetype='image/png', as_attachment=False)
+    except Exception as e:
+        print("[QR VIEW ERROR]", e)
+        return "QR generation failed", 500
 
 # === For Render ===
 if not os.path.exists(DB_FILE):
     init_db()
-
