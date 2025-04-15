@@ -102,11 +102,9 @@
       <br>
       <a 
         class="download-button" 
-        href="https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&data={{ request.host_url.rstrip('/') }}/track?id={{ new_code }}" 
-        target="_blank" 
-        rel="noopener noreferrer"
+        href="/download-qr/{{ new_code }}"
       >
-        ⬇️ Open High-Res QR to Save
+        ⬇️ Download QR Code
       </a>
     </div>
   {% endif %}
