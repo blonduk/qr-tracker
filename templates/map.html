@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>QR Code Scan Map</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background: #111;
+      color: white;
+    }
+
+    h1 {
+      text-align: center;
+      margin: 0;
+      padding: 1rem;
+      background: #222;
+    }
+
+    #map {
+      height: 90vh;
+      width: 100%;
+    }
+
+    .leaflet-popup-content {
+      font-size: 0.9rem;
+    }
+
+    a.back {
+      display: block;
+      text-align: center;
+      margin: 1rem auto;
+      color: #0df;
+      text-decoration: none;
+    }
+
+    a.back:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+<h1>🌍 QR Scan Map</h1>
+
+<div id="map"></div>
+
+<a class="back" href="/dashboard">← Back to Dashboard</a>
+
+<script>
+  const map = L.map('map').setView([20, 0], 2);  // Default center
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+  }).addTo(map);
+
+  const locations = {{ locations | tojson }};
+
+  locations.forEach(([short_id, timestamp, lat, lon, city, country]) => {
+    if (lat && lon) {
+      const popup = `
+        <strong>${short_id}</strong><br>
+        ${city || 'Unknown'}, ${country || ''}<br>
+        <small>${timestamp}</small>
+      `;
+      L.marker([lat, lon]).addTo(map).bindPopup(popup);
+    }
+  });
+</script>
+
+</body>
+</html>
