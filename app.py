@@ -40,7 +40,6 @@ def track():
     ip = request.remote_addr
     timestamp = datetime.utcnow()
 
-    # Geolocation lookup
     try:
         geo = requests.get(f"http://ip-api.com/json/{ip}").json()
         city = geo.get('city', '')
@@ -77,7 +76,11 @@ def dashboard():
             GROUP BY r.short_id
         """)
         stats = cursor.fetchall()
-        return render_template('dashboard.html', stats=stats, new_code=new_code)
+
+        cursor.execute("SELECT short_id, timestamp, lat, lon, city, country FROM logs WHERE lat != 0 AND lon != 0")
+        locations = cursor.fetchall()
+
+    return render_template('dashboard.html', stats=stats, new_code=new_code, locations=locations)
 
 @app.route('/add', methods=['POST'])
 def add_redirect():
@@ -142,14 +145,6 @@ def export_csv():
             writer.writerow(row)
     output.seek(0)
     return send_file(io.BytesIO(output.getvalue().encode()), mimetype='text/csv', as_attachment=True, download_name='qr-scan-logs.csv')
-
-@app.route('/map')
-def map_view():
-    with sqlite3.connect(DB_FILE) as conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT short_id, timestamp, lat, lon, city, country FROM logs WHERE lat != 0 AND lon != 0")
-        locations = cursor.fetchall()
-    return render_template("map.html", locations=locations)
 
 if __name__ == '__main__':
     if not os.path.exists(DB_FILE):
