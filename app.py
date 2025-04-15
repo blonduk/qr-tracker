@@ -8,7 +8,6 @@ import csv
 import requests
 
 app = Flask(__name__)
-
 DB_FILE = 'redirects.db'
 
 def init_db():
@@ -49,10 +48,8 @@ def track():
         lat = geo.get('lat', 0)
         lon = geo.get('lon', 0)
     except:
-        city = ''
-        country = ''
-        lat = 0
-        lon = 0
+        city, country = '', ''
+        lat, lon = 0, 0
 
     with sqlite3.connect(DB_FILE) as conn:
         cursor = conn.cursor()
@@ -68,7 +65,6 @@ def track():
     else:
         return "Invalid tracking code", 404
 
-# Everything else stays the same — shortened for clarity:
 @app.route('/dashboard')
 def dashboard():
     new_code = request.args.get('new')
@@ -87,7 +83,6 @@ def dashboard():
 def add_redirect():
     short_id = request.form.get('short_id').strip()
     destination = request.form.get('destination').strip()
-
     if not short_id or not destination:
         return "Missing fields", 400
 
@@ -104,11 +99,9 @@ def add_redirect():
 def edit_redirect():
     short_id = request.form.get('short_id')
     new_dest = request.form.get('new_destination')
-
     with sqlite3.connect(DB_FILE) as conn:
         conn.execute("UPDATE redirects SET destination = ? WHERE short_id = ?", (new_dest, short_id))
         conn.commit()
-
     return redirect("/dashboard")
 
 @app.route('/delete/<short_id>', methods=['POST'])
@@ -117,7 +110,6 @@ def delete_redirect(short_id):
         conn.execute("DELETE FROM logs WHERE short_id = ?", (short_id,))
         conn.execute("DELETE FROM redirects WHERE short_id = ?", (short_id,))
         conn.commit()
-
     return redirect("/dashboard")
 
 @app.route('/download-qr/<short_id>')
@@ -127,13 +119,7 @@ def download_qr(short_id):
     buf = io.BytesIO()
     img.save(buf, format='PNG')
     buf.seek(0)
-
-    return send_file(
-        buf,
-        mimetype='image/png',
-        as_attachment=True,
-        download_name=f'qr-{short_id}.png'
-    )
+    return send_file(buf, mimetype='image/png', as_attachment=True, download_name=f'qr-{short_id}.png')
 
 @app.route('/view-qr/<short_id>')
 def view_qr(short_id):
@@ -142,32 +128,28 @@ def view_qr(short_id):
     buf = io.BytesIO()
     img.save(buf, format='PNG')
     buf.seek(0)
-
-    return send_file(
-        buf,
-        mimetype='image/png',
-        as_attachment=False
-    )
+    return send_file(buf, mimetype='image/png', as_attachment=False)
 
 @app.route('/export-csv')
 def export_csv():
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow(['Short Code', 'Timestamp', 'IP', 'City', 'Country', 'User Agent'])
-
     with sqlite3.connect(DB_FILE) as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT short_id, timestamp, ip, city, country, user_agent FROM logs ORDER BY timestamp DESC")
         for row in cursor.fetchall():
             writer.writerow(row)
-
     output.seek(0)
-    return send_file(
-        io.BytesIO(output.getvalue().encode()),
-        mimetype='text/csv',
-        as_attachment=True,
-        download_name='qr-scan-logs.csv'
-    )
+    return send_file(io.BytesIO(output.getvalue().encode()), mimetype='text/csv', as_attachment=True, download_name='qr-scan-logs.csv')
+
+@app.route('/map')
+def map_view():
+    with sqlite3.connect(DB_FILE) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT short_id, timestamp, lat, lon, city, country FROM logs WHERE lat != 0 AND lon != 0")
+        locations = cursor.fetchall()
+    return render_template("map.html", locations=locations)
 
 if __name__ == '__main__':
     if not os.path.exists(DB_FILE):
