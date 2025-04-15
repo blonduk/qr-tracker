@@ -200,3 +200,9 @@ if __name__ == '__main__':
         init_db()
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
+
+@app.route('/log-test')
+def log_test():
+    print("[TEST] This is a log test from /log-test")
+    return "✅ Log test triggered"
+
