@@ -23,12 +23,13 @@ def get_sheet():
 
 def append_to_sheet(data):
     try:
+        print(f"[SHEET] Attempting to write row: {data}")
         sheet = get_sheet()
         sheet.append_row(data)
+        print("[SHEET] ✅ Row appended successfully")
     except Exception as e:
-        print("[!] Google Sheets error:", e)
+        print("[SHEET ERROR]", e)
 
-# === TEST ROUTE ===
 @app.route('/test-sheets')
 def test_sheets():
     try:
@@ -74,11 +75,13 @@ def track():
         country = geo.get('country', '')
         lat = geo.get('lat', 0)
         lon = geo.get('lon', 0)
-    except:
+    except Exception as geo_err:
+        print("[GEO ERROR]", geo_err)
         city, country = '', ''
         lat, lon = 0, 0
 
-    # Save to local DB
+    print(f"[TRACK] Logging scan: {short_id}, IP: {ip}, Location: {city}, {country}")
+
     with sqlite3.connect(DB_FILE) as conn:
         cursor = conn.cursor()
         cursor.execute("""
@@ -88,10 +91,8 @@ def track():
         conn.commit()
         dest = cursor.execute("SELECT destination FROM redirects WHERE short_id = ?", (short_id,)).fetchone()
 
-    # Debug print before and after writing to Google Sheets
-    print(f"[TRACK] Logging scan to Google Sheet: {short_id}")
+    # Now write to the Google Sheet
     append_to_sheet([short_id, str(timestamp), ip, city, country, user_agent])
-    print("[TRACK] ✅ Sheet write called")
 
     if dest:
         return redirect(dest[0])
