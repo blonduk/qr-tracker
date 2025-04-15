@@ -26,7 +26,16 @@ def append_to_sheet(data):
         sheet = get_sheet()
         sheet.append_row(data)
     except Exception as e:
-        print("[!] Failed to write to Google Sheet:", e)
+        print("[!] Google Sheets error:", e)
+
+# === TEST ROUTE ===
+@app.route('/test-sheets')
+def test_sheets():
+    try:
+        append_to_sheet(["test", str(datetime.utcnow()), "ip", "city", "country", "agent"])
+        return "✅ Google Sheets write succeeded!"
+    except Exception as e:
+        return f"❌ Sheets error: {e}"
 
 # === DB SETUP ===
 def init_db():
