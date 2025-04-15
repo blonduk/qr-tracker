@@ -139,6 +139,24 @@ def dashboard():
 
     return render_template('dashboard.html', stats=stats, new_code=new_code, locations=locations)
 
+# === Add New Redirect ===
+@app.route('/add', methods=['POST'])
+def add_redirect():
+    short_id = request.form.get('short_id').strip()
+    destination = request.form.get('destination').strip()
+    if not short_id or not destination:
+        return "Missing fields", 400
+
+    with sqlite3.connect(DB_FILE) as conn:
+        try:
+            conn.execute("INSERT INTO redirects (short_id, destination) VALUES (?, ?)", (short_id, destination))
+            conn.commit()
+        except sqlite3.IntegrityError:
+            return "Shortcode already exists", 400
+
+    return redirect(f"/dashboard?new={short_id}")
+
 # === For Render ===
 if not os.path.exists(DB_FILE):
     init_db()
+
