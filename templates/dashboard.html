@@ -5,110 +5,90 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
-      --bg-color: #f9f9f9;
-      --text-color: #333;
-      --card-bg: white;
-      --border-color: #ccc;
-      --accent-color: #007bff;
+      --bg: #f9f9f9;
+      --text: #333;
+      --card: #fff;
+      --border: #ccc;
+      --accent: #007bff;
       --accent-hover: #0056b3;
     }
+
     body.dark {
-      --bg-color: #121212;
-      --text-color: #f1f1f1;
-      --card-bg: #1e1e1e;
-      --border-color: #444;
-      --accent-color: #0d6efd;
+      --bg: #121212;
+      --text: #f1f1f1;
+      --card: #1e1e1e;
+      --border: #444;
+      --accent: #0d6efd;
       --accent-hover: #084298;
     }
+
     body {
+      background: var(--bg);
+      color: var(--text);
       font-family: Arial, sans-serif;
       padding: 2rem;
-      background: var(--bg-color);
-      color: var(--text-color);
       transition: background 0.3s, color 0.3s;
     }
+
     h1 {
       text-align: center;
       margin-bottom: 2rem;
     }
+
     .top-buttons {
       text-align: center;
-      margin-bottom: 1rem;
+      margin-bottom: 2rem;
     }
+
     .toggle-dark {
-      background: var(--accent-color);
+      background: var(--accent);
       color: white;
-      padding: 8px 16px;
+      padding: 10px 20px;
       border: none;
       border-radius: 6px;
       cursor: pointer;
     }
+
     .toggle-dark:hover {
       background: var(--accent-hover);
     }
+
     .form-container {
       max-width: 500px;
-      margin: 0 auto 2rem auto;
-      background: var(--card-bg);
+      margin: 0 auto 2rem;
+      background: var(--card);
       padding: 20px;
       border-radius: 10px;
       box-shadow: 0 0 10px rgba(0,0,0,0.05);
     }
+
     input[type="text"] {
       width: 100%;
       padding: 10px;
       margin-bottom: 1rem;
-      border: 1px solid var(--border-color);
+      border: 1px solid var(--border);
       border-radius: 6px;
-      background: var(--card-bg);
-      color: var(--text-color);
+      background: var(--card);
+      color: var(--text);
     }
+
     button {
       width: 100%;
       padding: 10px;
-      background: var(--accent-color);
+      background: var(--accent);
       color: white;
       border: none;
       border-radius: 6px;
       cursor: pointer;
     }
+
     button:hover {
       background: var(--accent-hover);
     }
-    .chart-container {
-      width: 90%;
-      max-width: 700px;
-      margin: 2rem auto;
-    }
-    table {
-      margin: 2rem auto;
-      border-collapse: collapse;
-      background: var(--card-bg);
-      box-shadow: 0 0 5px rgba(0,0,0,0.1);
-    }
-    th, td {
-      padding: 10px 20px;
-      border: 1px solid var(--border-color);
-      text-align: center;
-    }
-    th {
-      background: var(--text-color);
-      color: white;
-    }
-    .qr-container {
-      text-align: center;
-      margin-bottom: 2rem;
-    }
-    .qr-container img {
-      border: 1px solid var(--border-color);
-      margin-top: 1rem;
-      width: 300px;
-      height: 300px;
-    }
-    .action-buttons {
-      margin-top: 1rem;
-    }
-    .download-button, .copy-button, .export-button {
+
+    .action-buttons a,
+    .action-buttons button,
+    .export-button {
       display: inline-block;
       margin: 5px;
       padding: 10px 20px;
@@ -116,29 +96,60 @@
       color: white;
       text-decoration: none;
       border-radius: 6px;
-      cursor: pointer;
+      border: none;
     }
-    .download-button:hover, .copy-button:hover, .export-button:hover {
+
+    .action-buttons a:hover,
+    .action-buttons button:hover,
+    .export-button:hover {
       background: #218838;
     }
+
+    .qr-container {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .qr-container img {
+      margin-top: 1rem;
+      border: 1px solid var(--border);
+      width: 300px;
+      height: 300px;
+    }
+
+    .chart-container {
+      width: 90%;
+      max-width: 700px;
+      margin: 2rem auto;
+    }
+
+    table {
+      margin: 2rem auto;
+      border-collapse: collapse;
+      background: var(--card);
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+
+    th, td {
+      padding: 10px 20px;
+      border: 1px solid var(--border);
+      text-align: center;
+    }
+
+    th {
+      background: var(--text);
+      color: white;
+    }
+
     .copy-success {
       color: #28a745;
       font-size: 0.9rem;
       margin-top: 0.5rem;
     }
-    #trackInput {
-      width: 90%;
-      padding: 10px;
-      font-size: 1rem;
-      text-align: center;
-      margin: 0.5rem auto;
-      background: var(--card-bg);
-      color: var(--text-color);
-      border: 1px solid var(--border-color);
-    }
+
     .edit-form {
       margin-top: 10px;
-      background: var(--card-bg);
+      background: var(--card);
       padding: 10px;
       border-radius: 8px;
     }
@@ -149,21 +160,130 @@
     <button class="toggle-dark" onclick="toggleDarkMode()">🌙 Toggle Dark Mode</button>
   </div>
 
-  <!-- Rest of your existing content (unchanged) goes here... -->
+  <h1>QR Tracker Dashboard</h1>
+
+  {% if new_code %}
+  <div class="qr-container">
+    <p>✅ <strong>{{ new_code }}</strong> was added successfully!</p>
+    <p>Tracking URL:</p>
+    <input id="trackInput" type="text" value="{{ request.host_url.rstrip('/') }}/track?id={{ new_code }}" readonly>
+    <div class="action-buttons">
+      <a href="/view-qr/{{ new_code }}" target="_blank">⬇️ Open High-Res QR</a>
+      <button onclick="copyToClipboard()">📋 Copy Link</button>
+    </div>
+    <div id="copySuccess" class="copy-success" style="display:none;">✅ Copied to clipboard!</div>
+    <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data={{ request.host_url.rstrip('/') }}/track?id={{ new_code }}" alt="QR Code">
+  </div>
+  {% endif %}
+
+  <div class="form-container">
+    <form method="POST" action="/add">
+      <input type="text" name="short_id" placeholder="Shortcode (e.g. insta)" required>
+      <input type="text" name="destination" placeholder="Destination URL" required>
+      <button type="submit">Add New Redirect</button>
+    </form>
+  </div>
+
+  <div class="chart-container">
+    <canvas id="scanChart"></canvas>
+  </div>
+
+  <div style="text-align:center;">
+    <a href="/export-csv" class="export-button">📤 Export All Scans (CSV)</a>
+  </div>
+
+  {% if stats %}
+  <table>
+    <tr>
+      <th>Short Code</th>
+      <th>Destination</th>
+      <th>Scans</th>
+      <th>Actions</th>
+    </tr>
+    {% for code, dest, count in stats %}
+    <tr>
+      <td>{{ code }}</td>
+      <td>{{ dest }}</td>
+      <td>{{ count }}</td>
+      <td>
+        <button onclick="toggleEdit('{{ code }}')">✏️ Edit</button>
+        <form method="POST" action="/delete/{{ code }}" style="display:inline;" onsubmit="return confirm('Delete {{ code }}?');">
+          <button type="submit">🗑️ Delete</button>
+        </form>
+      </td>
+    </tr>
+    <tr id="edit-{{ code }}" style="display:none;">
+      <td colspan="4">
+        <form method="POST" action="/edit" class="edit-form">
+          <input type="hidden" name="short_id" value="{{ code }}">
+          <input type="text" name="new_destination" value="{{ dest }}" required style="width: 80%;">
+          <button type="submit">💾 Save</button>
+          <button type="button" onclick="toggleEdit('{{ code }}')">Cancel</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p style="text-align:center;">No redirects yet. Add one above!</p>
+  {% endif %}
 
   <script>
-    // Dark mode toggle with localStorage
     function toggleDarkMode() {
-      document.body.classList.toggle("dark");
-      localStorage.setItem("darkMode", document.body.classList.contains("dark") ? "true" : "false");
+      document.body.classList.toggle('dark');
+      localStorage.setItem('darkMode', document.body.classList.contains('dark'));
     }
 
-    // Load saved mode on page load
     window.onload = () => {
-      if (localStorage.getItem("darkMode") === "true") {
-        document.body.classList.add("dark");
+      if (localStorage.getItem('darkMode') === 'true') {
+        document.body.classList.add('dark');
       }
     };
+
+    function toggleEdit(code) {
+      const row = document.getElementById("edit-" + code);
+      row.style.display = row.style.display === "none" ? "table-row" : "none";
+    }
+
+    function copyToClipboard() {
+      const input = document.getElementById("trackInput");
+      input.select();
+      input.setSelectionRange(0, 99999);
+      navigator.clipboard.writeText(input.value).then(function () {
+        document.getElementById("copySuccess").style.display = "block";
+        setTimeout(() => {
+          document.getElementById("copySuccess").style.display = "none";
+        }, 2000);
+      });
+    }
+
+    const labels = {{ stats | map(attribute=0) | list | tojson }};
+    const data = {{ stats | map(attribute=2) | list | tojson }};
+
+    const ctx = document.getElementById('scanChart').getContext('2d');
+    const scanChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Scans per Code',
+          data: data,
+          backgroundColor: 'rgba(54, 162, 235, 0.7)',
+          borderColor: 'rgba(54, 162, 235, 1)',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { stepSize: 1 }
+          }
+        }
+      }
+    });
   </script>
 </body>
 </html>
+
