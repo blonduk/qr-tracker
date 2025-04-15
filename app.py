@@ -156,6 +156,16 @@ def add_redirect():
 
     return redirect(f"/dashboard?new={short_id}")
 
+@app.route('/view-qr/<short_id>')
+def view_qr(short_id):
+    track_url = f"{request.host_url.rstrip('/')}/track?id={short_id}"
+    img = qrcode.make(track_url)
+    buf = io.BytesIO()
+    img.save(buf, format='PNG')
+    buf.seek(0)
+    return send_file(buf, mimetype='image/png', as_attachment=False)
+
+
 # === For Render ===
 if not os.path.exists(DB_FILE):
     init_db()
