@@ -1,9 +1,10 @@
-from flask import Flask, redirect, request, render_template, send_file
+from flask import Flask, redirect, request, render_template, send_file, jsonify
 from datetime import datetime
 import sqlite3
 import os
 import qrcode
 import io
+import csv
 
 app = Flask(__name__)
 
@@ -52,7 +53,7 @@ def dashboard():
     with sqlite3.connect(DB_FILE) as conn:
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT r.short_id, COUNT(l.id) as scan_count
+            SELECT r.short_id, r.destination, COUNT(l.id) as scan_count
             FROM redirects r
             LEFT JOIN logs l ON r.short_id = l.short_id
             GROUP BY r.short_id
@@ -76,6 +77,26 @@ def add_redirect():
             return "Shortcode already exists", 400
 
     return redirect(f"/dashboard?new={short_id}")
+
+@app.route('/edit', methods=['POST'])
+def edit_redirect():
+    short_id = request.form.get('short_id')
+    new_dest = request.form.get('new_destination')
+
+    with sqlite3.connect(DB_FILE) as conn:
+        conn.execute("UPDATE redirects SET destination = ? WHERE short_id = ?", (new_dest, short_id))
+        conn.commit()
+
+    return redirect("/dashboard")
+
+@app.route('/delete/<short_id>', methods=['POST'])
+def delete_redirect(short_id):
+    with sqlite3.connect(DB_FILE) as conn:
+        conn.execute("DELETE FROM logs WHERE short_id = ?", (short_id,))
+        conn.execute("DELETE FROM redirects WHERE short_id = ?", (short_id,))
+        conn.commit()
+
+    return redirect("/dashboard")
 
 @app.route('/download-qr/<short_id>')
 def download_qr(short_id):
