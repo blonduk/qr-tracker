@@ -42,6 +42,11 @@ def log_test():
     print("[TEST] This is a log test from /log-test")
     return "✅ Log test triggered"
 
+@app.route('/')
+def home():
+    return redirect('/dashboard')
+
+
 def init_db():
     with sqlite3.connect(DB_FILE) as conn:
         conn.execute('''
