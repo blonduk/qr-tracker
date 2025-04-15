@@ -82,15 +82,17 @@ def track():
     timestamp = datetime.utcnow()
 
     try:
-        geo = requests.get(f"http://ip-api.com/json/{ip}").json()
-        city = geo.get('city', '')
-        country = geo.get('country', '')
-        lat = geo.get('lat', 0)
-        lon = geo.get('lon', 0)
-    except Exception as geo_err:
-        print("[GEO ERROR]", geo_err)
-        city, country = '', ''
-        lat, lon = 0, 0
+    geo = requests.get(f"http://ip-api.com/json/{ip}").json()
+    print("[GEO] Raw response:", geo)
+    city = geo.get('city', '')
+    country = geo.get('country', '')
+    lat = geo.get('lat', 0)
+    lon = geo.get('lon', 0)
+except Exception as geo_err:
+    print("[GEO ERROR]", geo_err)
+    city, country = '', ''
+    lat, lon = 0, 0
+
 
     print(f"[TRACK] Logging scan: {short_id}, IP: {ip}, Location: {city}, {country}")
 
