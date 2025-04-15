@@ -91,6 +91,13 @@
       font-size: 0.9rem;
       margin-top: 0.5rem;
     }
+    #trackInput {
+      width: 90%;
+      padding: 10px;
+      font-size: 1rem;
+      text-align: center;
+      margin: 0.5rem auto;
+    }
   </style>
 </head>
 <body>
@@ -100,7 +107,7 @@
     <div class="qr-container">
       <p>✅ <strong>{{ new_code }}</strong> was added successfully!</p>
       <p>Tracking URL:</p>
-      <p id="trackLink">{{ request.host_url.rstrip('/') }}/track?id={{ new_code }}</p>
+      <input id="trackInput" type="text" value="{{ request.host_url.rstrip('/') }}/track?id={{ new_code }}" readonly>
 
       <div class="action-buttons">
         <a 
@@ -135,4 +142,57 @@
   </div>
 
   <div class="chart-container">
-    <canvas id="scanChart"></canvas
+    <canvas id="scanChart"></canvas>
+  </div>
+
+  <table>
+    <tr><th>Short Code</th><th>Scans</th></tr>
+    {% for code, count in stats %}
+      <tr><td>{{ code }}</td><td>{{ count }}</td></tr>
+    {% endfor %}
+  </table>
+
+  <script>
+    function copyToClipboard() {
+      const input = document.getElementById("trackInput");
+      input.select();
+      input.setSelectionRange(0, 99999);
+      navigator.clipboard.writeText(input.value).then(function () {
+        document.getElementById("copySuccess").style.display = "block";
+        setTimeout(() => {
+          document.getElementById("copySuccess").style.display = "none";
+        }, 2000);
+      });
+    }
+
+    const labels = {{ stats | map(attribute=0) | list | tojson }};
+    const data = {{ stats | map(attribute=1) | list | tojson }};
+
+    const ctx = document.getElementById('scanChart').getContext('2d');
+    const scanChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Scans per Code',
+          data: data,
+          backgroundColor: 'rgba(54, 162, 235, 0.7)',
+          borderColor: 'rgba(54, 162, 235, 1)',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              stepSize: 1
+            }
+          }
+        }
+      }
+    });
+  </script>
+</body>
+</html>
