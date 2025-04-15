@@ -102,12 +102,6 @@
       border: none;
     }
 
-    .action-buttons a:hover,
-    .action-buttons button:hover,
-    .export-button:hover {
-      background: #218838;
-    }
-
     .qr-container {
       text-align: center;
       margin-bottom: 2rem;
@@ -274,7 +268,7 @@
     const data = {{ stats | map(attribute=2) | list | tojson }};
 
     const ctx = document.getElementById('scanChart').getContext('2d');
-    const scanChart = new Chart(ctx, {
+    new Chart(ctx, {
       type: 'bar',
       data: {
         labels: labels,
@@ -297,15 +291,13 @@
       }
     });
 
-    // MAP!
+    // MAP STUFF
+    const rawLocations = {{ locations | default([]) | tojson }};
+
     const map = L.map('map').setView([20, 0], 2);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors'
     }).addTo(map);
-
-    const locations = {{ stats | tojson }}; // fallback if not passed
-
-    const rawLocations = {{ locations | default([]) | tojson }};
 
     rawLocations.forEach(([short_id, timestamp, lat, lon, city, country]) => {
       if (lat && lon) {
