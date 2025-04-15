@@ -2,7 +2,10 @@
 <html>
 <head>
   <title>QR Tracker Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
     :root {
       --bg: #f9f9f9;
@@ -153,9 +156,17 @@
       padding: 10px;
       border-radius: 8px;
     }
+
+    #map {
+      height: 500px;
+      width: 100%;
+      margin-top: 3rem;
+      border-radius: 10px;
+    }
   </style>
 </head>
 <body>
+
   <div class="top-buttons">
     <button class="toggle-dark" onclick="toggleDarkMode()">🌙 Toggle Dark Mode</button>
   </div>
@@ -228,6 +239,8 @@
   <p style="text-align:center;">No redirects yet. Add one above!</p>
   {% endif %}
 
+  <div id="map"></div>
+
   <script>
     function toggleDarkMode() {
       document.body.classList.toggle('dark');
@@ -283,7 +296,28 @@
         }
       }
     });
+
+    // MAP!
+    const map = L.map('map').setView([20, 0], 2);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    const locations = {{ stats | tojson }}; // fallback if not passed
+
+    const rawLocations = {{ locations | default([]) | tojson }};
+
+    rawLocations.forEach(([short_id, timestamp, lat, lon, city, country]) => {
+      if (lat && lon) {
+        const popup = `
+          <strong>${short_id}</strong><br>
+          ${city || 'Unknown'}, ${country || ''}<br>
+          <small>${timestamp}</small>
+        `;
+        L.marker([lat, lon]).addTo(map).bindPopup(popup);
+      }
+    });
   </script>
+
 </body>
 </html>
-
