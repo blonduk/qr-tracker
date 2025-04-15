@@ -70,17 +70,26 @@
       width: 300px;
       height: 300px;
     }
-    .download-button {
-      display: inline-block;
+    .action-buttons {
       margin-top: 1rem;
+    }
+    .download-button, .copy-button {
+      display: inline-block;
+      margin: 5px;
       padding: 10px 20px;
       background: #28a745;
       color: white;
       text-decoration: none;
       border-radius: 6px;
+      cursor: pointer;
     }
-    .download-button:hover {
+    .download-button:hover, .copy-button:hover {
       background: #218838;
+    }
+    .copy-success {
+      color: #28a745;
+      font-size: 0.9rem;
+      margin-top: 0.5rem;
     }
   </style>
 </head>
@@ -91,21 +100,29 @@
     <div class="qr-container">
       <p>✅ <strong>{{ new_code }}</strong> was added successfully!</p>
       <p>Tracking URL:</p>
-      <a href="{{ request.host_url.rstrip('/') }}/track?id={{ new_code }}" target="_blank">
-        {{ request.host_url.rstrip('/') }}/track?id={{ new_code }}
-      </a>
-      <p>QR Code Preview:</p>
+      <p id="trackLink">{{ request.host_url.rstrip('/') }}/track?id={{ new_code }}</p>
+
+      <div class="action-buttons">
+        <a 
+          class="download-button" 
+          href="/download-qr/{{ new_code }}" 
+          target="_blank" 
+          rel="noopener noreferrer"
+        >
+          ⬇️ Open High-Res QR
+        </a>
+
+        <button class="copy-button" onclick="copyToClipboard()">📋 Copy Link</button>
+      </div>
+
+      <div id="copySuccess" class="copy-success" style="display:none;">
+        ✅ Copied to clipboard!
+      </div>
+
       <img 
         id="qr"
         src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data={{ request.host_url.rstrip('/') }}/track?id={{ new_code }}" 
         alt="QR Code for {{ new_code }}">
-      <br>
-      <a 
-        class="download-button" 
-        href="/download-qr/{{ new_code }}"
-      >
-        ⬇️ Download QR Code
-      </a>
     </div>
   {% endif %}
 
@@ -129,6 +146,16 @@
   </table>
 
   <script>
+    function copyToClipboard() {
+      const text = document.getElementById("trackLink").innerText;
+      navigator.clipboard.writeText(text).then(function () {
+        document.getElementById("copySuccess").style.display = "block";
+        setTimeout(() => {
+          document.getElementById("copySuccess").style.display = "none";
+        }, 2000);
+      });
+    }
+
     const labels = {{ stats | map(attribute=0) | list | tojson }};
     const data = {{ stats | map(attribute=1) | list | tojson }};
 
