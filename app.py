@@ -195,11 +195,9 @@ def export_csv():
     return send_file(io.BytesIO(output.getvalue().encode()), mimetype='text/csv', as_attachment=True, download_name='qr-scan-logs.csv')
 
 # === RENDER ENTRY POINT ===
-if __name__ == '__main__':
-    if not os.path.exists(DB_FILE):
-        init_db()
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+if not os.path.exists(DB_FILE):
+    init_db()
+
 
 @app.route('/log-test')
 def log_test():
