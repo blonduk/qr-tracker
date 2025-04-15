@@ -33,8 +33,12 @@
             padding: 0.4rem 1rem;
         }
         .qr-thumb {
-            width: 60px;
-            height: 60px;
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+            border: 1px solid #ccc;
+            background: white;
+            padding: 4px;
         }
         #map {
             height: 400px;
@@ -87,7 +91,11 @@
                 <td>{{ short_id }}</td>
                 <td>{{ destination }}</td>
                 <td>{{ scan_count }}</td>
-                <td><img src="/view-qr/{{ short_id }}" class="qr-thumb"></td>
+                <td>
+                    <a href="/view-qr/{{ short_id }}" target="_blank">
+                        <img src="/view-qr/{{ short_id }}" class="qr-thumb">
+                    </a>
+                </td>
                 <td><button onclick="copyToClipboard('{{ request.host_url }}track?id={{ short_id }}')">Copy</button></td>
                 <td>
                     <form action="/edit" method="POST" style="display:inline;">
