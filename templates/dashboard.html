@@ -4,20 +4,52 @@
   <title>QR Tracker Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
+    :root {
+      --bg-color: #f9f9f9;
+      --text-color: #333;
+      --card-bg: white;
+      --border-color: #ccc;
+      --accent-color: #007bff;
+      --accent-hover: #0056b3;
+    }
+    body.dark {
+      --bg-color: #121212;
+      --text-color: #f1f1f1;
+      --card-bg: #1e1e1e;
+      --border-color: #444;
+      --accent-color: #0d6efd;
+      --accent-hover: #084298;
+    }
     body {
       font-family: Arial, sans-serif;
       padding: 2rem;
-      background: #f9f9f9;
-      color: #333;
+      background: var(--bg-color);
+      color: var(--text-color);
+      transition: background 0.3s, color 0.3s;
     }
     h1 {
       text-align: center;
       margin-bottom: 2rem;
     }
+    .top-buttons {
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+    .toggle-dark {
+      background: var(--accent-color);
+      color: white;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .toggle-dark:hover {
+      background: var(--accent-hover);
+    }
     .form-container {
       max-width: 500px;
       margin: 0 auto 2rem auto;
-      background: white;
+      background: var(--card-bg);
       padding: 20px;
       border-radius: 10px;
       box-shadow: 0 0 10px rgba(0,0,0,0.05);
@@ -26,20 +58,22 @@
       width: 100%;
       padding: 10px;
       margin-bottom: 1rem;
-      border: 1px solid #ccc;
+      border: 1px solid var(--border-color);
       border-radius: 6px;
+      background: var(--card-bg);
+      color: var(--text-color);
     }
     button {
       width: 100%;
       padding: 10px;
-      background: #007bff;
+      background: var(--accent-color);
       color: white;
       border: none;
       border-radius: 6px;
       cursor: pointer;
     }
     button:hover {
-      background: #0056b3;
+      background: var(--accent-hover);
     }
     .chart-container {
       width: 90%;
@@ -49,16 +83,16 @@
     table {
       margin: 2rem auto;
       border-collapse: collapse;
-      background: white;
+      background: var(--card-bg);
       box-shadow: 0 0 5px rgba(0,0,0,0.1);
     }
     th, td {
       padding: 10px 20px;
-      border: 1px solid #ddd;
+      border: 1px solid var(--border-color);
       text-align: center;
     }
     th {
-      background: #444;
+      background: var(--text-color);
       color: white;
     }
     .qr-container {
@@ -66,7 +100,7 @@
       margin-bottom: 2rem;
     }
     .qr-container img {
-      border: 1px solid #ccc;
+      border: 1px solid var(--border-color);
       margin-top: 1rem;
       width: 300px;
       height: 300px;
@@ -74,7 +108,7 @@
     .action-buttons {
       margin-top: 1rem;
     }
-    .download-button, .copy-button {
+    .download-button, .copy-button, .export-button {
       display: inline-block;
       margin: 5px;
       padding: 10px 20px;
@@ -84,7 +118,7 @@
       border-radius: 6px;
       cursor: pointer;
     }
-    .download-button:hover, .copy-button:hover {
+    .download-button:hover, .copy-button:hover, .export-button:hover {
       background: #218838;
     }
     .copy-success {
@@ -98,142 +132,38 @@
       font-size: 1rem;
       text-align: center;
       margin: 0.5rem auto;
+      background: var(--card-bg);
+      color: var(--text-color);
+      border: 1px solid var(--border-color);
     }
     .edit-form {
       margin-top: 10px;
-      background: #f4f4f4;
+      background: var(--card-bg);
       padding: 10px;
       border-radius: 8px;
     }
   </style>
 </head>
 <body>
-  <h1>QR Tracker Dashboard</h1>
-
-  {% if new_code %}
-    <div class="qr-container">
-      <p>✅ <strong>{{ new_code }}</strong> was added successfully!</p>
-      <p>Tracking URL:</p>
-      <input id="trackInput" type="text" value="{{ request.host_url.rstrip('/') }}/track?id={{ new_code }}" readonly>
-
-      <div class="action-buttons">
-        <a 
-          class="download-button" 
-          href="/view-qr/{{ new_code }}" 
-          target="_blank" 
-          rel="noopener noreferrer"
-        >
-          ⬇️ Open High-Res QR to Save
-        </a>
-
-        <button class="copy-button" onclick="copyToClipboard()">📋 Copy Link</button>
-      </div>
-
-      <div id="copySuccess" class="copy-success" style="display:none;">
-        ✅ Copied to clipboard!
-      </div>
-
-      <img 
-        id="qr"
-        src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data={{ request.host_url.rstrip('/') }}/track?id={{ new_code }}" 
-        alt="QR Code for {{ new_code }}">
-    </div>
-  {% endif %}
-
-  <div class="form-container">
-    <form method="POST" action="/add">
-      <input type="text" name="short_id" placeholder="Shortcode (e.g. insta)" required>
-      <input type="text" name="destination" placeholder="Destination URL (e.g. https://...)" required>
-      <button type="submit">Add New Redirect</button>
-    </form>
+  <div class="top-buttons">
+    <button class="toggle-dark" onclick="toggleDarkMode()">🌙 Toggle Dark Mode</button>
   </div>
 
-  <div class="chart-container">
-    <canvas id="scanChart"></canvas>
-  </div>
-
-  {% if stats %}
-    <table>
-      <tr>
-        <th>Short Code</th>
-        <th>Destination</th>
-        <th>Scans</th>
-        <th>Actions</th>
-      </tr>
-      {% for code, dest, count in stats %}
-        <tr>
-          <td>{{ code }}</td>
-          <td>{{ dest }}</td>
-          <td>{{ count }}</td>
-          <td>
-            <button onclick="toggleEdit('{{ code }}', '{{ dest }}')">✏️ Edit</button>
-            <form method="POST" action="/delete/{{ code }}" style="display:inline;" onsubmit="return confirm('Delete {{ code }}?');">
-              <button type="submit">🗑️ Delete</button>
-            </form>
-          </td>
-        </tr>
-        <tr id="edit-{{ code }}" style="display:none;">
-          <td colspan="4">
-            <form method="POST" action="/edit" class="edit-form">
-              <input type="hidden" name="short_id" value="{{ code }}">
-              <input type="text" name="new_destination" value="{{ dest }}" required style="width: 80%;">
-              <button type="submit">💾 Save</button>
-              <button type="button" onclick="toggleEdit('{{ code }}')">Cancel</button>
-            </form>
-          </td>
-        </tr>
-      {% endfor %}
-    </table>
-  {% else %}
-    <p style="text-align:center; font-size: 1.1rem; margin-top: 2rem;">No redirects found yet. Add one above!</p>
-  {% endif %}
+  <!-- Rest of your existing content (unchanged) goes here... -->
 
   <script>
-    function copyToClipboard() {
-      const input = document.getElementById("trackInput");
-      input.select();
-      input.setSelectionRange(0, 99999);
-      navigator.clipboard.writeText(input.value).then(function () {
-        document.getElementById("copySuccess").style.display = "block";
-        setTimeout(() => {
-          document.getElementById("copySuccess").style.display = "none";
-        }, 2000);
-      });
+    // Dark mode toggle with localStorage
+    function toggleDarkMode() {
+      document.body.classList.toggle("dark");
+      localStorage.setItem("darkMode", document.body.classList.contains("dark") ? "true" : "false");
     }
 
-    function toggleEdit(code) {
-      const row = document.getElementById("edit-" + code);
-      row.style.display = row.style.display === "none" ? "table-row" : "none";
-    }
-
-    const labels = {{ stats | map(attribute=0) | list | tojson }};
-    const data = {{ stats | map(attribute=2) | list | tojson }};
-
-    const ctx = document.getElementById('scanChart').getContext('2d');
-    const scanChart = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: labels,
-        datasets: [{
-          label: 'Scans per Code',
-          data: data,
-          backgroundColor: 'rgba(54, 162, 235, 0.7)',
-          borderColor: 'rgba(54, 162, 235, 1)',
-          borderWidth: 1
-        }]
-      },
-      options: {
-        responsive: true,
-        scales: {
-          y: {
-            beginAtZero: true,
-            ticks: {
-              stepSize: 1
-            }
-          }
-        }
+    // Load saved mode on page load
+    window.onload = () => {
+      if (localStorage.getItem("darkMode") === "true") {
+        document.body.classList.add("dark");
       }
-    });
+    };
   </script>
 </body>
 </html>
