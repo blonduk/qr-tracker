@@ -142,4 +142,98 @@
 
   <div class="form-container">
     <form method="POST" action="/add">
-      <input type="text" name="short_id" placeholder="Shortcode (e_
+      <input type="text" name="short_id" placeholder="Shortcode (e.g. insta)" required>
+      <input type="text" name="destination" placeholder="Destination URL (e.g. https://...)" required>
+      <button type="submit">Add New Redirect</button>
+    </form>
+  </div>
+
+  <div class="chart-container">
+    <canvas id="scanChart"></canvas>
+  </div>
+
+  {% if stats %}
+    <table>
+      <tr>
+        <th>Short Code</th>
+        <th>Destination</th>
+        <th>Scans</th>
+        <th>Actions</th>
+      </tr>
+      {% for code, dest, count in stats %}
+        <tr>
+          <td>{{ code }}</td>
+          <td>{{ dest }}</td>
+          <td>{{ count }}</td>
+          <td>
+            <button onclick="toggleEdit('{{ code }}', '{{ dest }}')">✏️ Edit</button>
+            <form method="POST" action="/delete/{{ code }}" style="display:inline;" onsubmit="return confirm('Delete {{ code }}?');">
+              <button type="submit">🗑️ Delete</button>
+            </form>
+          </td>
+        </tr>
+        <tr id="edit-{{ code }}" style="display:none;">
+          <td colspan="4">
+            <form method="POST" action="/edit" class="edit-form">
+              <input type="hidden" name="short_id" value="{{ code }}">
+              <input type="text" name="new_destination" value="{{ dest }}" required style="width: 80%;">
+              <button type="submit">💾 Save</button>
+              <button type="button" onclick="toggleEdit('{{ code }}')">Cancel</button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+    </table>
+  {% else %}
+    <p style="text-align:center; font-size: 1.1rem; margin-top: 2rem;">No redirects found yet. Add one above!</p>
+  {% endif %}
+
+  <script>
+    function copyToClipboard() {
+      const input = document.getElementById("trackInput");
+      input.select();
+      input.setSelectionRange(0, 99999);
+      navigator.clipboard.writeText(input.value).then(function () {
+        document.getElementById("copySuccess").style.display = "block";
+        setTimeout(() => {
+          document.getElementById("copySuccess").style.display = "none";
+        }, 2000);
+      });
+    }
+
+    function toggleEdit(code) {
+      const row = document.getElementById("edit-" + code);
+      row.style.display = row.style.display === "none" ? "table-row" : "none";
+    }
+
+    const labels = {{ stats | map(attribute=0) | list | tojson }};
+    const data = {{ stats | map(attribute=2) | list | tojson }};
+
+    const ctx = document.getElementById('scanChart').getContext('2d');
+    const scanChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Scans per Code',
+          data: data,
+          backgroundColor: 'rgba(54, 162, 235, 0.7)',
+          borderColor: 'rgba(54, 162, 235, 1)',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              stepSize: 1
+            }
+          }
+        }
+      }
+    });
+  </script>
+</body>
+</html>
