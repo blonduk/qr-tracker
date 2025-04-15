@@ -138,18 +138,3 @@ def view_qr(short_id):
 @app.route('/export-csv')
 def export_csv():
     output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(['Short Code', 'Timestamp', 'IP', 'City', 'Country', 'User Agent'])
-    with sqlite3.connect(DB_FILE) as conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT short_id, timestamp, ip, city, country, user_agent FROM logs ORDER BY timestamp DESC")
-        for row in cursor.fetchall():
-            writer.writerow(row)
-    output.seek(0)
-    return send_file(io.BytesIO(output.getvalue().encode()), mimetype='text/csv', as_attachment=True, download_name='qr-scan-logs.csv')
-
-if __name__ == '__main__':
-    if not os.path.exists(DB_FILE):
-        init_db()
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
