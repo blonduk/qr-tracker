@@ -39,17 +39,19 @@
     }
 
     .top-buttons {
-      text-align: center;
-      margin-bottom: 2rem;
+      position: absolute;
+      top: 20px;
+      left: 20px;
     }
 
     .toggle-dark {
       background: var(--accent);
       color: white;
-      padding: 10px 20px;
+      padding: 8px 16px;
       border: none;
       border-radius: 6px;
       cursor: pointer;
+      font-size: 0.9rem;
     }
 
     .toggle-dark:hover {
@@ -125,10 +127,12 @@
       border-collapse: collapse;
       background: var(--card);
       box-shadow: 0 0 5px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 1000px;
     }
 
     th, td {
-      padding: 10px 20px;
+      padding: 10px;
       border: 1px solid var(--border);
       text-align: center;
     }
@@ -136,6 +140,18 @@
     th {
       background: var(--text);
       color: white;
+    }
+
+    .qr-thumb {
+      width: 60px;
+      height: 60px;
+    }
+
+    #map {
+      height: 500px;
+      width: 100%;
+      margin-top: 3rem;
+      border-radius: 10px;
     }
 
     .copy-success {
@@ -150,19 +166,12 @@
       padding: 10px;
       border-radius: 8px;
     }
-
-    #map {
-      height: 500px;
-      width: 100%;
-      margin-top: 3rem;
-      border-radius: 10px;
-    }
   </style>
 </head>
 <body>
 
   <div class="top-buttons">
-    <button class="toggle-dark" onclick="toggleDarkMode()">🌙 Toggle Dark Mode</button>
+    <button class="toggle-dark" onclick="toggleDarkMode()">🌙 Dark</button>
   </div>
 
   <h1>QR Tracker Dashboard</h1>
@@ -201,6 +210,7 @@
   <table>
     <tr>
       <th>Short Code</th>
+      <th>QR</th>
       <th>Destination</th>
       <th>Scans</th>
       <th>Actions</th>
@@ -208,6 +218,11 @@
     {% for code, dest, count in stats %}
     <tr>
       <td>{{ code }}</td>
+      <td>
+        <a href="/view-qr/{{ code }}" target="_blank">
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=60x60&data={{ request.host_url.rstrip('/') }}/track?id={{ code }}" class="qr-thumb" alt="QR">
+        </a>
+      </td>
       <td>{{ dest }}</td>
       <td>{{ count }}</td>
       <td>
@@ -218,7 +233,7 @@
       </td>
     </tr>
     <tr id="edit-{{ code }}" style="display:none;">
-      <td colspan="4">
+      <td colspan="5">
         <form method="POST" action="/edit" class="edit-form">
           <input type="hidden" name="short_id" value="{{ code }}">
           <input type="text" name="new_destination" value="{{ dest }}" required style="width: 80%;">
@@ -291,7 +306,6 @@
       }
     });
 
-    // MAP STUFF
     const rawLocations = {{ locations | default([]) | tojson }};
 
     const map = L.map('map').setView([20, 0], 2);
