@@ -50,6 +50,8 @@ def track():
         city, country = '', ''
         lat, lon = 0, 0
 
+    print(f"[SCAN] IP: {ip}, City: {city}, Country: {country}, Lat: {lat}, Lon: {lon}")
+
     with sqlite3.connect(DB_FILE) as conn:
         cursor = conn.cursor()
         cursor.execute("""
