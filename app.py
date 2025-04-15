@@ -12,6 +12,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 app = Flask(__name__)
 DB_FILE = 'redirects.db'
 
+# === Google Sheets Setup ===
 def get_sheet():
     scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
     creds_path = '/etc/secrets/google-credentials.json'
@@ -29,6 +30,7 @@ def append_to_sheet(data):
     except Exception as e:
         print("[SHEET ERROR]", e)
 
+# === Test Routes ===
 @app.route('/test-sheets')
 def test_sheets():
     try:
@@ -46,7 +48,7 @@ def log_test():
 def home():
     return redirect('/dashboard')
 
-
+# === DB Setup ===
 def init_db():
     with sqlite3.connect(DB_FILE) as conn:
         conn.execute('''
@@ -70,6 +72,7 @@ def init_db():
         ''')
         conn.execute("INSERT OR IGNORE INTO redirects (short_id, destination) VALUES (?, ?)", ("blondart", "https://www.blondart.co.uk"))
 
+# === Main Tracker ===
 @app.route('/track')
 def track():
     short_id = request.args.get('id')
@@ -81,7 +84,6 @@ def track():
     ip = request.remote_addr
     timestamp = datetime.utcnow()
 
-    # Geo lookup
     try:
         geo = requests.get(f"http://ip-api.com/json/{ip}").json()
         print("[GEO] Raw response:", geo)
@@ -118,6 +120,25 @@ def track():
     else:
         return "Invalid tracking code", 404
 
-# === For Render startup ===
+# === Dashboard ===
+@app.route('/dashboard')
+def dashboard():
+    new_code = request.args.get('new')
+    with sqlite3.connect(DB_FILE) as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT r.short_id, r.destination, COUNT(l.id) as scan_count
+            FROM redirects r
+            LEFT JOIN logs l ON r.short_id = l.short_id
+            GROUP BY r.short_id
+        """)
+        stats = cursor.fetchall()
+
+        cursor.execute("SELECT short_id, timestamp, lat, lon, city, country FROM logs WHERE lat != 0 AND lon != 0")
+        locations = cursor.fetchall()
+
+    return render_template('dashboard.html', stats=stats, new_code=new_code, locations=locations)
+
+# === For Render ===
 if not os.path.exists(DB_FILE):
     init_db()
