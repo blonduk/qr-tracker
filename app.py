@@ -6,10 +6,29 @@ import qrcode
 import io
 import csv
 import requests
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 
 app = Flask(__name__)
 DB_FILE = 'redirects.db'
 
+# === GOOGLE SHEETS SETUP ===
+def get_sheet():
+    scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+    creds_path = '/etc/secrets/google-credentials.json'
+    creds = ServiceAccountCredentials.from_json_keyfile_name(creds_path, scope)
+    client = gspread.authorize(creds)
+    sheet = client.open("QR Scan Archive").sheet1
+    return sheet
+
+def append_to_sheet(data):
+    try:
+        sheet = get_sheet()
+        sheet.append_row(data)
+    except Exception as e:
+        print("[!] Failed to write to Google Sheet:", e)
+
+# === DB SETUP ===
 def init_db():
     with sqlite3.connect(DB_FILE) as conn:
         conn.execute('''
@@ -50,8 +69,7 @@ def track():
         city, country = '', ''
         lat, lon = 0, 0
 
-    print(f"[SCAN] IP: {ip}, City: {city}, Country: {country}, Lat: {lat}, Lon: {lon}")
-
+    # Save to local DB
     with sqlite3.connect(DB_FILE) as conn:
         cursor = conn.cursor()
         cursor.execute("""
@@ -60,6 +78,9 @@ def track():
         """, (short_id, timestamp, user_agent, ip, city, country, lat, lon))
         conn.commit()
         dest = cursor.execute("SELECT destination FROM redirects WHERE short_id = ?", (short_id,)).fetchone()
+
+    # Save to Google Sheet
+    append_to_sheet([short_id, str(timestamp), ip, city, country, user_agent])
 
     if dest:
         return redirect(dest[0])
@@ -148,30 +169,8 @@ def export_csv():
     output.seek(0)
     return send_file(io.BytesIO(output.getvalue().encode()), mimetype='text/csv', as_attachment=True, download_name='qr-scan-logs.csv')
 
-@app.route('/fake-scan')
-def fake_scan():
-    short_id = request.args.get('code', 'testmap')
-    timestamp = datetime.utcnow()
-    ip = "123.456.78.90"
-    user_agent = "FakeTestBrowser/1.0"
-    city = "New York"
-    country = "USA"
-    lat = 40.7128
-    lon = -74.0060
-
-    with sqlite3.connect(DB_FILE) as conn:
-        cursor = conn.cursor()
-        cursor.execute("""
-            INSERT INTO logs (short_id, timestamp, user_agent, ip, city, country, lat, lon)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, (short_id, timestamp, user_agent, ip, city, country, lat, lon))
-        conn.commit()
-
-    return f"✅ Fake scan logged for '{short_id}' from {city}, {country}!"
-
-# 🔥 THIS is the part that fixes the Render deploy
 if __name__ == '__main__':
     if not os.path.exists(DB_FILE):
         init_db()
-    port = int(os.environ.get('PORT', 5000))  # <-- this is the Render magic
+    port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
