@@ -67,7 +67,11 @@ def init_db():
 @app.route('/track')
 def track():
     short_id = request.args.get('id')
-    user_agent = request.headers.get('User-Agent')
+    if not short_id:
+        print("[TRACK] No shortcode provided.")
+        return "Missing tracking ID", 400
+
+    user_agent = request.headers.get('User-Agent', '').replace('\n', ' ').replace('\r', ' ')[:250]
     ip = request.remote_addr
     timestamp = datetime.utcnow()
 
@@ -93,12 +97,16 @@ def track():
         conn.commit()
         dest = cursor.execute("SELECT destination FROM redirects WHERE short_id = ?", (short_id,)).fetchone()
 
-    append_to_sheet([short_id, str(timestamp), ip, city, country, user_agent])
+    try:
+        append_to_sheet([short_id, str(timestamp), ip, city, country, user_agent])
+    except Exception as e:
+        print("[TRACK → SHEET ERROR]", e)
 
     if dest:
         return redirect(dest[0])
     else:
         return "Invalid tracking code", 404
+
 
 # === DASHBOARD ===
 @app.route('/dashboard')
