@@ -1,7 +1,9 @@
-from flask import Flask, redirect, request, render_template
+from flask import Flask, redirect, request, render_template, send_file
 from datetime import datetime
 import sqlite3
 import os
+import qrcode
+import io
 
 app = Flask(__name__)
 
@@ -74,6 +76,23 @@ def add_redirect():
             return "Shortcode already exists", 400
 
     return redirect(f"/dashboard?new={short_id}")
+
+@app.route('/download-qr/<short_id>')
+def download_qr(short_id):
+    track_url = f"{request.host_url.rstrip('/')}/track?id={short_id}"
+
+    # Generate QR image in memory
+    img = qrcode.make(track_url)
+    buf = io.BytesIO()
+    img.save(buf, format='PNG')
+    buf.seek(0)
+
+    return send_file(
+        buf,
+        mimetype='image/png',
+        as_attachment=True,
+        download_name=f'qr-{short_id}.png'
+    )
 
 if __name__ == '__main__':
     if not os.path.exists(DB_FILE):
