@@ -1,329 +1,140 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>QR Tracker Dashboard</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <style>
-    :root {
-      --bg: #f9f9f9;
-      --text: #333;
-      --card: #fff;
-      --border: #ccc;
-      --accent: #007bff;
-      --accent-hover: #0056b3;
-    }
-
-    body.dark {
-      --bg: #121212;
-      --text: #f1f1f1;
-      --card: #1e1e1e;
-      --border: #444;
-      --accent: #0d6efd;
-      --accent-hover: #084298;
-    }
-
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: Arial, sans-serif;
-      padding: 2rem;
-      transition: background 0.3s, color 0.3s;
-    }
-
-    h1 {
-      text-align: center;
-      margin-bottom: 2rem;
-    }
-
-    .top-buttons {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-    }
-
-    .toggle-dark {
-      background: var(--accent);
-      color: white;
-      padding: 8px 16px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 0.9rem;
-    }
-
-    .toggle-dark:hover {
-      background: var(--accent-hover);
-    }
-
-    .form-container {
-      max-width: 500px;
-      margin: 0 auto 2rem;
-      background: var(--card);
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.05);
-    }
-
-    input[type="text"] {
-      width: 100%;
-      padding: 10px;
-      margin-bottom: 1rem;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      background: var(--card);
-      color: var(--text);
-    }
-
-    button {
-      width: 100%;
-      padding: 10px;
-      background: var(--accent);
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background: var(--accent-hover);
-    }
-
-    .action-buttons a,
-    .action-buttons button,
-    .export-button {
-      display: inline-block;
-      margin: 5px;
-      padding: 10px 20px;
-      background: #28a745;
-      color: white;
-      text-decoration: none;
-      border-radius: 6px;
-      border: none;
-    }
-
-    .qr-container {
-      text-align: center;
-      margin-bottom: 2rem;
-    }
-
-    .qr-container img {
-      margin-top: 1rem;
-      border: 1px solid var(--border);
-      width: 300px;
-      height: 300px;
-    }
-
-    .chart-container {
-      width: 90%;
-      max-width: 700px;
-      margin: 2rem auto;
-    }
-
-    table {
-      margin: 2rem auto;
-      border-collapse: collapse;
-      background: var(--card);
-      box-shadow: 0 0 5px rgba(0,0,0,0.1);
-      width: 100%;
-      max-width: 1000px;
-    }
-
-    th, td {
-      padding: 10px;
-      border: 1px solid var(--border);
-      text-align: center;
-    }
-
-    th {
-      background: var(--text);
-      color: white;
-    }
-
-    .qr-thumb {
-      width: 60px;
-      height: 60px;
-    }
-
-    #map {
-      height: 500px;
-      width: 100%;
-      margin-top: 3rem;
-      border-radius: 10px;
-    }
-
-    .copy-success {
-      color: #28a745;
-      font-size: 0.9rem;
-      margin-top: 0.5rem;
-    }
-
-    .edit-form {
-      margin-top: 10px;
-      background: var(--card);
-      padding: 10px;
-      border-radius: 8px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <title>QR Tracker Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body {
+            font-family: sans-serif;
+            background-color: #f3f3f3;
+            color: #222;
+            padding: 2rem;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 2rem;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 0.6rem;
+            text-align: left;
+        }
+        form {
+            margin-bottom: 2rem;
+        }
+        input[type="text"] {
+            padding: 0.4rem;
+            margin-right: 1rem;
+        }
+        button {
+            padding: 0.4rem 1rem;
+        }
+        .qr-thumb {
+            width: 60px;
+            height: 60px;
+        }
+        #map {
+            height: 400px;
+            margin-bottom: 2rem;
+        }
+        .dark-mode {
+            background-color: #121212;
+            color: #f3f3f3;
+        }
+        .dark-mode table, .dark-mode th, .dark-mode td {
+            border-color: #555;
+        }
+    </style>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 </head>
 <body>
 
-  <div class="top-buttons">
-    <button class="toggle-dark" onclick="toggleDarkMode()">🌙 Dark</button>
-  </div>
+    <button onclick="toggleDarkMode()" style="position: fixed; top: 10px; left: 10px;">🌓</button>
 
-  <h1>QR Tracker Dashboard</h1>
+    <h1>QR Tracker Dashboard</h1>
 
-  {% if new_code %}
-  <div class="qr-container">
-    <p>✅ <strong>{{ new_code }}</strong> was added successfully!</p>
-    <p>Tracking URL:</p>
-    <input id="trackInput" type="text" value="{{ request.host_url.rstrip('/') }}/track?id={{ new_code }}" readonly>
-    <div class="action-buttons">
-      <a href="/view-qr/{{ new_code }}" target="_blank">⬇️ Open High-Res QR</a>
-      <button onclick="copyToClipboard()">📋 Copy Link</button>
-    </div>
-    <div id="copySuccess" class="copy-success" style="display:none;">✅ Copied to clipboard!</div>
-    <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data={{ request.host_url.rstrip('/') }}/track?id={{ new_code }}" alt="QR Code">
-  </div>
-  {% endif %}
-
-  <div class="form-container">
-    <form method="POST" action="/add">
-      <input type="text" name="short_id" placeholder="Shortcode (e.g. insta)" required>
-      <input type="text" name="destination" placeholder="Destination URL" required>
-      <button type="submit">Add New Redirect</button>
+    <form action="/add" method="POST">
+        <input type="text" name="short_id" placeholder="Short Code" required>
+        <input type="text" name="destination" placeholder="Destination URL" required>
+        <button type="submit">Add New Redirect</button>
     </form>
-  </div>
 
-  <div class="chart-container">
-    <canvas id="scanChart"></canvas>
-  </div>
+    {% if new_code %}
+        <p>✅ <strong>{{ new_code }}</strong> created. 
+        <a href="/view-qr/{{ new_code }}" target="_blank">View QR</a> | 
+        <a href="/download-qr/{{ new_code }}" target="_blank">Download QR</a></p>
+    {% endif %}
 
-  <div style="text-align:center;">
-    <a href="/export-csv" class="export-button">📤 Export All Scans (CSV)</a>
-  </div>
+    <h2>Scan Stats</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Short Code</th>
+                <th>Destination</th>
+                <th>Scans</th>
+                <th>QR</th>
+                <th>Copy Link</th>
+                <th>Edit</th>
+                <th>Delete</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for short_id, destination, scan_count in stats %}
+            <tr>
+                <td>{{ short_id }}</td>
+                <td>{{ destination }}</td>
+                <td>{{ scan_count }}</td>
+                <td><img src="/view-qr/{{ short_id }}" class="qr-thumb"></td>
+                <td><button onclick="copyToClipboard('{{ request.host_url }}track?id={{ short_id }}')">Copy</button></td>
+                <td>
+                    <form action="/edit" method="POST" style="display:inline;">
+                        <input type="hidden" name="short_id" value="{{ short_id }}">
+                        <input type="text" name="new_destination" placeholder="New URL">
+                        <button type="submit">Update</button>
+                    </form>
+                </td>
+                <td>
+                    <form action="/delete/{{ short_id }}" method="POST" style="display:inline;">
+                        <button type="submit" onclick="return confirm('Are you sure?')">Delete</button>
+                    </form>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
 
-  {% if stats %}
-  <table>
-    <tr>
-      <th>Short Code</th>
-      <th>QR</th>
-      <th>Destination</th>
-      <th>Scans</th>
-      <th>Actions</th>
-    </tr>
-    {% for code, dest, count in stats %}
-    <tr>
-      <td>{{ code }}</td>
-      <td>
-        <a href="/view-qr/{{ code }}" target="_blank">
-          <img src="https://api.qrserver.com/v1/create-qr-code/?size=60x60&data={{ request.host_url.rstrip('/') }}/track?id={{ code }}" class="qr-thumb" alt="QR">
-        </a>
-      </td>
-      <td>{{ dest }}</td>
-      <td>{{ count }}</td>
-      <td>
-        <button onclick="toggleEdit('{{ code }}')">✏️ Edit</button>
-        <form method="POST" action="/delete/{{ code }}" style="display:inline;" onsubmit="return confirm('Delete {{ code }}?');">
-          <button type="submit">🗑️ Delete</button>
-        </form>
-      </td>
-    </tr>
-    <tr id="edit-{{ code }}" style="display:none;">
-      <td colspan="5">
-        <form method="POST" action="/edit" class="edit-form">
-          <input type="hidden" name="short_id" value="{{ code }}">
-          <input type="text" name="new_destination" value="{{ dest }}" required style="width: 80%;">
-          <button type="submit">💾 Save</button>
-          <button type="button" onclick="toggleEdit('{{ code }}')">Cancel</button>
-        </form>
-      </td>
-    </tr>
-    {% endfor %}
-  </table>
-  {% else %}
-  <p style="text-align:center;">No redirects yet. Add one above!</p>
-  {% endif %}
+    <h2>Scan Locations</h2>
+    <div id="map"></div>
 
-  <div id="map"></div>
+    <a href="/export-csv" target="_blank">Download Scan Logs (CSV)</a>
 
-  <script>
-    function toggleDarkMode() {
-      document.body.classList.toggle('dark');
-      localStorage.setItem('darkMode', document.body.classList.contains('dark'));
-    }
-
-    window.onload = () => {
-      if (localStorage.getItem('darkMode') === 'true') {
-        document.body.classList.add('dark');
-      }
-    };
-
-    function toggleEdit(code) {
-      const row = document.getElementById("edit-" + code);
-      row.style.display = row.style.display === "none" ? "table-row" : "none";
-    }
-
-    function copyToClipboard() {
-      const input = document.getElementById("trackInput");
-      input.select();
-      input.setSelectionRange(0, 99999);
-      navigator.clipboard.writeText(input.value).then(function () {
-        document.getElementById("copySuccess").style.display = "block";
-        setTimeout(() => {
-          document.getElementById("copySuccess").style.display = "none";
-        }, 2000);
-      });
-    }
-
-    const labels = {{ stats | map(attribute=0) | list | tojson }};
-    const data = {{ stats | map(attribute=2) | list | tojson }};
-
-    const ctx = document.getElementById('scanChart').getContext('2d');
-    new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: labels,
-        datasets: [{
-          label: 'Scans per Code',
-          data: data,
-          backgroundColor: 'rgba(54, 162, 235, 0.7)',
-          borderColor: 'rgba(54, 162, 235, 1)',
-          borderWidth: 1
-        }]
-      },
-      options: {
-        responsive: true,
-        scales: {
-          y: {
-            beginAtZero: true,
-            ticks: { stepSize: 1 }
-          }
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        function toggleDarkMode() {
+            document.body.classList.toggle("dark-mode");
         }
-      }
-    });
 
-    const rawLocations = {{ locations | default([]) | tojson }};
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert("Copied to clipboard!");
+            });
+        }
 
-    const map = L.map('map').setView([20, 0], 2);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
+        const map = L.map('map').setView([20, 0], 2);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
 
-    rawLocations.forEach(([short_id, timestamp, lat, lon, city, country]) => {
-      if (lat && lon) {
-        const popup = `
-          <strong>${short_id}</strong><br>
-          ${city || 'Unknown'}, ${country || ''}<br>
-          <small>${timestamp}</small>
-        `;
-        L.marker([lat, lon]).addTo(map).bindPopup(popup);
-      }
-    });
-  </script>
-
+        const locations = {{ locations|tojson }};
+        locations.forEach(([short_id, timestamp, lat, lon, city, country]) => {
+            if (lat && lon) {
+                L.marker([lat, lon]).addTo(map)
+                    .bindPopup(`<strong>${short_id}</strong><br>${city}, ${country}<br>${timestamp}`);
+            }
+        });
+    </script>
 </body>
 </html>
