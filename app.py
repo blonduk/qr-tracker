@@ -30,6 +30,7 @@ def append_to_sheet(data):
     except Exception as e:
         print("[SHEET ERROR]", e)
 
+# === TEST ROUTE FOR SHEET ===
 @app.route('/test-sheets')
 def test_sheets():
     try:
@@ -38,7 +39,7 @@ def test_sheets():
     except Exception as e:
         return f"❌ Sheets error: {e}"
 
-# === DB SETUP ===
+# === DATABASE SETUP ===
 def init_db():
     with sqlite3.connect(DB_FILE) as conn:
         conn.execute('''
@@ -62,6 +63,7 @@ def init_db():
         ''')
         conn.execute("INSERT OR IGNORE INTO redirects (short_id, destination) VALUES (?, ?)", ("blondart", "https://www.blondart.co.uk"))
 
+# === MAIN TRACKING ROUTE ===
 @app.route('/track')
 def track():
     short_id = request.args.get('id')
@@ -91,7 +93,6 @@ def track():
         conn.commit()
         dest = cursor.execute("SELECT destination FROM redirects WHERE short_id = ?", (short_id,)).fetchone()
 
-    # Now write to the Google Sheet
     append_to_sheet([short_id, str(timestamp), ip, city, country, user_agent])
 
     if dest:
@@ -99,6 +100,7 @@ def track():
     else:
         return "Invalid tracking code", 404
 
+# === DASHBOARD ===
 @app.route('/dashboard')
 def dashboard():
     new_code = request.args.get('new')
@@ -117,6 +119,7 @@ def dashboard():
 
     return render_template('dashboard.html', stats=stats, new_code=new_code, locations=locations)
 
+# === ADD, EDIT, DELETE REDIRECTS ===
 @app.route('/add', methods=['POST'])
 def add_redirect():
     short_id = request.form.get('short_id').strip()
@@ -150,6 +153,7 @@ def delete_redirect(short_id):
         conn.commit()
     return redirect("/dashboard")
 
+# === QR CODE HANDLERS ===
 @app.route('/download-qr/<short_id>')
 def download_qr(short_id):
     track_url = f"{request.host_url.rstrip('/')}/track?id={short_id}"
@@ -168,6 +172,7 @@ def view_qr(short_id):
     buf.seek(0)
     return send_file(buf, mimetype='image/png', as_attachment=False)
 
+# === EXPORT CSV ===
 @app.route('/export-csv')
 def export_csv():
     output = io.StringIO()
@@ -181,6 +186,7 @@ def export_csv():
     output.seek(0)
     return send_file(io.BytesIO(output.getvalue().encode()), mimetype='text/csv', as_attachment=True, download_name='qr-scan-logs.csv')
 
+# === RENDER ENTRY POINT ===
 if __name__ == '__main__':
     if not os.path.exists(DB_FILE):
         init_db()
