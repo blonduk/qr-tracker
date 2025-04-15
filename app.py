@@ -5,6 +5,7 @@ import os
 import qrcode
 import io
 import csv
+import requests
 
 app = Flask(__name__)
 
@@ -18,7 +19,11 @@ def init_db():
                 short_id TEXT,
                 timestamp DATETIME,
                 user_agent TEXT,
-                ip TEXT
+                ip TEXT,
+                city TEXT,
+                country TEXT,
+                lat REAL,
+                lon REAL
             )
         ''')
         conn.execute('''
@@ -36,9 +41,25 @@ def track():
     ip = request.remote_addr
     timestamp = datetime.utcnow()
 
+    # Geolocation lookup
+    try:
+        geo = requests.get(f"http://ip-api.com/json/{ip}").json()
+        city = geo.get('city', '')
+        country = geo.get('country', '')
+        lat = geo.get('lat', 0)
+        lon = geo.get('lon', 0)
+    except:
+        city = ''
+        country = ''
+        lat = 0
+        lon = 0
+
     with sqlite3.connect(DB_FILE) as conn:
         cursor = conn.cursor()
-        cursor.execute("INSERT INTO logs (short_id, timestamp, user_agent, ip) VALUES (?, ?, ?, ?)", (short_id, timestamp, user_agent, ip))
+        cursor.execute("""
+            INSERT INTO logs (short_id, timestamp, user_agent, ip, city, country, lat, lon)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (short_id, timestamp, user_agent, ip, city, country, lat, lon))
         conn.commit()
         dest = cursor.execute("SELECT destination FROM redirects WHERE short_id = ?", (short_id,)).fetchone()
 
@@ -47,6 +68,7 @@ def track():
     else:
         return "Invalid tracking code", 404
 
+# Everything else stays the same — shortened for clarity:
 @app.route('/dashboard')
 def dashboard():
     new_code = request.args.get('new')
@@ -131,11 +153,11 @@ def view_qr(short_id):
 def export_csv():
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(['Short Code', 'Timestamp', 'User Agent', 'IP'])
+    writer.writerow(['Short Code', 'Timestamp', 'IP', 'City', 'Country', 'User Agent'])
 
     with sqlite3.connect(DB_FILE) as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT short_id, timestamp, user_agent, ip FROM logs ORDER BY timestamp DESC")
+        cursor.execute("SELECT short_id, timestamp, ip, city, country, user_agent FROM logs ORDER BY timestamp DESC")
         for row in cursor.fetchall():
             writer.writerow(row)
 
