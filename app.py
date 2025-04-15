@@ -98,7 +98,13 @@ def track():
         dest = cursor.execute("SELECT destination FROM redirects WHERE short_id = ?", (short_id,)).fetchone()
 
     try:
-        append_to_sheet([short_id, str(timestamp), ip, city, country, user_agent])
+        print("[TRACK] Trying to write to Google Sheet...")
+try:
+    append_to_sheet([short_id, str(timestamp), ip, city, country, user_agent])
+    print("[TRACK] ✅ Sheet write successful")
+except Exception as sheet_error:
+    print("[TRACK] ❌ Sheet write FAILED:", sheet_error)
+
     except Exception as e:
         print("[TRACK → SHEET ERROR]", e)
 
