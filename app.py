@@ -80,8 +80,6 @@ def add_redirect():
 @app.route('/download-qr/<short_id>')
 def download_qr(short_id):
     track_url = f"{request.host_url.rstrip('/')}/track?id={short_id}"
-
-    # Generate QR image in memory
     img = qrcode.make(track_url)
     buf = io.BytesIO()
     img.save(buf, format='PNG')
@@ -92,6 +90,20 @@ def download_qr(short_id):
         mimetype='image/png',
         as_attachment=True,
         download_name=f'qr-{short_id}.png'
+    )
+
+@app.route('/view-qr/<short_id>')
+def view_qr(short_id):
+    track_url = f"{request.host_url.rstrip('/')}/track?id={short_id}"
+    img = qrcode.make(track_url)
+    buf = io.BytesIO()
+    img.save(buf, format='PNG')
+    buf.seek(0)
+
+    return send_file(
+        buf,
+        mimetype='image/png',
+        as_attachment=False
     )
 
 if __name__ == '__main__':
