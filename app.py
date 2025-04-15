@@ -39,6 +39,12 @@ def test_sheets():
     except Exception as e:
         return f"❌ Sheets error: {e}"
 
+# === LOG TEST ROUTE ===
+@app.route('/log-test')
+def log_test():
+    print("[TEST] This is a log test from /log-test")
+    return "✅ Log test triggered"
+
 # === DATABASE SETUP ===
 def init_db():
     with sqlite3.connect(DB_FILE) as conn:
@@ -97,22 +103,17 @@ def track():
         conn.commit()
         dest = cursor.execute("SELECT destination FROM redirects WHERE short_id = ?", (short_id,)).fetchone()
 
+    print("[TRACK] Trying to write to Google Sheet...")
     try:
-        print("[TRACK] Trying to write to Google Sheet...")
-try:
-    append_to_sheet([short_id, str(timestamp), ip, city, country, user_agent])
-    print("[TRACK] ✅ Sheet write successful")
-except Exception as sheet_error:
-    print("[TRACK] ❌ Sheet write FAILED:", sheet_error)
-
-    except Exception as e:
-        print("[TRACK → SHEET ERROR]", e)
+        append_to_sheet([short_id, str(timestamp), ip, city, country, user_agent])
+        print("[TRACK] ✅ Sheet write successful")
+    except Exception as sheet_error:
+        print("[TRACK] ❌ Sheet write FAILED:", sheet_error)
 
     if dest:
         return redirect(dest[0])
     else:
         return "Invalid tracking code", 404
-
 
 # === DASHBOARD ===
 @app.route('/dashboard')
@@ -200,13 +201,6 @@ def export_csv():
     output.seek(0)
     return send_file(io.BytesIO(output.getvalue().encode()), mimetype='text/csv', as_attachment=True, download_name='qr-scan-logs.csv')
 
-# === RENDER ENTRY POINT ===
+# === INIT DB FOR RENDER ===
 if not os.path.exists(DB_FILE):
     init_db()
-
-
-@app.route('/log-test')
-def log_test():
-    print("[TEST] This is a log test from /log-test")
-    return "✅ Log test triggered"
-
