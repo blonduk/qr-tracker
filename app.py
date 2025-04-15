@@ -119,7 +119,7 @@ def track():
     else:
         return "Invalid tracking code", 404
 
-# === Dashboard ===
+# === Dashboard (with cleaned geo data for heatmap) ===
 @app.route('/dashboard')
 def dashboard():
     new_code = request.args.get('new')
@@ -133,8 +133,11 @@ def dashboard():
         """)
         stats = cursor.fetchall()
 
-        cursor.execute("SELECT short_id, timestamp, lat, lon, city, country FROM logs WHERE lat != 0 AND lon != 0")
-        locations = cursor.fetchall()
+        cursor.execute("SELECT short_id, timestamp, lat, lon, city, country FROM logs")
+        raw_locations = cursor.fetchall()
+
+    # Filter bad or missing coordinates
+    locations = [row for row in raw_locations if row[2] and row[3] and row[2] != 0 and row[3] != 0]
 
     return render_template('dashboard.html', stats=stats, new_code=new_code, locations=locations)
 
