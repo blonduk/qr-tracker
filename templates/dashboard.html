@@ -1,148 +1,146 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>QR Tracker Dashboard</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style>
-        body {
-            font-family: sans-serif;
-            background-color: #f3f3f3;
-            color: #222;
-            padding: 2rem;
-            transition: background-color 0.3s, color 0.3s;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 2rem;
-        }
-        th, td {
-            border: 1px solid #ccc;
-            padding: 0.6rem;
-            text-align: left;
-        }
-        form {
-            margin-bottom: 2rem;
-        }
-        input[type="text"] {
-            padding: 0.4rem;
-            margin-right: 1rem;
-        }
-        button {
-            padding: 0.4rem 1rem;
-        }
-        .qr-thumb {
-            width: 80px;
-            height: 80px;
-            object-fit: contain;
-            border: 1px solid #ccc;
-            background: white;
-            padding: 4px;
-        }
-        #map {
-            height: 400px;
-            margin-bottom: 2rem;
-        }
-        .dark-mode {
-            background-color: #121212;
-            color: #f3f3f3;
-        }
-        .dark-mode table, .dark-mode th, .dark-mode td {
-            border-color: #555;
-        }
-    </style>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <meta charset="UTF-8">
+  <title>QR Tracker Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      font-family: sans-serif;
+      background-color: #f3f3f3;
+      color: #222;
+      padding: 2rem;
+      transition: background-color 0.3s, color 0.3s;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 2rem;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 0.6rem;
+      text-align: left;
+    }
+    form {
+      margin-bottom: 2rem;
+    }
+    input[type="text"] {
+      padding: 0.4rem;
+      margin-right: 1rem;
+    }
+    button {
+      padding: 0.4rem 1rem;
+    }
+    .qr-thumb {
+      width: 80px;
+      height: 80px;
+      object-fit: contain;
+      border: 1px solid #ccc;
+      background: white;
+      padding: 4px;
+    }
+    #map {
+      height: 400px;
+      margin-bottom: 2rem;
+    }
+    .dark-mode {
+      background-color: #121212;
+      color: #f3f3f3;
+    }
+    .dark-mode table, .dark-mode th, .dark-mode td {
+      border-color: #555;
+    }
+  </style>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 </head>
 <body>
 
-    <button onclick="toggleDarkMode()" style="position: fixed; top: 10px; left: 10px;">🌓</button>
+  <button onclick="toggleDarkMode()" style="position: fixed; top: 10px; left: 10px;">🌓</button>
 
-    <h1>QR Tracker Dashboard</h1>
+  <h1>QR Tracker Dashboard</h1>
 
-    <form action="/add" method="POST">
-        <input type="text" name="short_id" placeholder="Short Code" required>
-        <input type="text" name="destination" placeholder="Destination URL" required>
-        <button type="submit">Add New Redirect</button>
-    </form>
+  <form action="/add" method="POST">
+    <input type="text" name="short_id" placeholder="Short Code" required>
+    <input type="text" name="destination" placeholder="Destination URL" required>
+    <button type="submit">Add New Redirect</button>
+  </form>
 
-    {% if new_code %}
-        <p>✅ <strong>{{ new_code }}</strong> created. 
-        <a href="/view-qr/{{ new_code }}" target="_blank">View QR</a> | 
-        <a href="/download-qr/{{ new_code }}" target="_blank">Download QR</a></p>
-    {% endif %}
+  {% if new_code %}
+    <p>✅ <strong>{{ new_code }}</strong> created. 
+    <a href="/view-qr/{{ new_code }}" target="_blank">View QR</a> | 
+    <a href="/download-qr/{{ new_code }}" target="_blank">Download QR</a></p>
+  {% endif %}
 
-    <h2>Scan Stats</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>Short Code</th>
-                <th>Destination</th>
-                <th>Scans</th>
-                <th>QR</th>
-                <th>Copy Link</th>
-                <th>Edit</th>
-                <th>Delete</th>
-            </tr>
-        </thead>
-        <tbody>
-        {% for short_id, destination, scan_count in stats %}
-            <tr>
-                <td>{{ short_id }}</td>
-                <td>{{ destination }}</td>
-                <td>{{ scan_count }}</td>
-                <td>
-                    <a href="/view-qr/{{ short_id }}" target="_blank">
-                        <img src="/view-qr/{{ short_id }}" class="qr-thumb">
-                    </a>
-                </td>
-                <td><button onclick="copyToClipboard('{{ request.host_url }}track?id={{ short_id }}')">Copy</button></td>
-                <td>
-                    <form action="/edit" method="POST" style="display:inline;">
-                        <input type="hidden" name="short_id" value="{{ short_id }}">
-                        <input type="text" name="new_destination" placeholder="New URL">
-                        <button type="submit">Update</button>
-                    </form>
-                </td>
-                <td>
-                    <form action="/delete/{{ short_id }}" method="POST" style="display:inline;">
-                        <button type="submit" onclick="return confirm('Are you sure?')">Delete</button>
-                    </form>
-                </td>
-            </tr>
-        {% endfor %}
-        </tbody>
-    </table>
+  <h2>Scan Stats</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Short Code</th>
+        <th>Destination</th>
+        <th>Scans</th>
+        <th>QR</th>
+        <th>Copy Link</th>
+        <th>Edit</th>
+        <th>Delete</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for short_id, destination, scan_count in stats %}
+      <tr>
+        <td>{{ short_id }}</td>
+        <td>{{ destination }}</td>
+        <td>{{ scan_count }}</td>
+        <td>
+          <a href="/view-qr/{{ short_id }}" target="_blank">
+            <img src="/view-qr/{{ short_id }}" class="qr-thumb">
+          </a>
+        </td>
+        <td><button onclick="copyToClipboard('{{ request.host_url }}track?id={{ short_id }}')">Copy</button></td>
+        <td>
+          <form action="/edit" method="POST" style="display:inline;">
+            <input type="hidden" name="short_id" value="{{ short_id }}">
+            <input type="text" name="new_destination" placeholder="New URL">
+            <button type="submit">Update</button>
+          </form>
+        </td>
+        <td>
+          <form action="/delete/{{ short_id }}" method="POST" style="display:inline;">
+            <button type="submit" onclick="return confirm('Are you sure?')">Delete</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
 
-    <h2>Scan Locations</h2>
-    <div id="map"></div>
+  <h2>Scan Heatmap</h2>
+  <div id="map"></div>
 
-    <a href="/export-csv" target="_blank">Download Scan Logs (CSV)</a>
+  <a href="/export-csv" target="_blank">Download Scan Logs (CSV)</a>
 
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <script>
-        function toggleDarkMode() {
-            document.body.classList.toggle("dark-mode");
-        }
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+  <script>
+    function toggleDarkMode() {
+      document.body.classList.toggle("dark-mode");
+    }
 
-        function copyToClipboard(text) {
-            navigator.clipboard.writeText(text).then(() => {
-                alert("Copied to clipboard!");
-            });
-        }
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        alert("Copied to clipboard!");
+      });
+    }
 
-        const map = L.map('map').setView([20, 0], 2);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors'
-        }).addTo(map);
+    const map = L.map('map').setView([20, 0], 2);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
 
-        const locations = {{ locations|tojson }};
-        locations.forEach(([short_id, timestamp, lat, lon, city, country]) => {
-            if (lat && lon) {
-                L.marker([lat, lon]).addTo(map)
-                    .bindPopup(`<strong>${short_id}</strong><br>${city}, ${country}<br>${timestamp}`);
-            }
-        });
-    </script>
+    // Leaflet heat layer format: [lat, lon, intensity]
+    const locations = {{ locations|tojson }};
+    const heatPoints = locations.map(loc => [loc[2], loc[3], 0.7]); // lat, lon, intensity
+    L.heatLayer(heatPoints, { radius: 25 }).addTo(map);
+  </script>
 </body>
 </html>
