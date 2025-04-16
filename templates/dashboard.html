@@ -60,10 +60,6 @@
 
   <h1>QR Tracker Dashboard</h1>
 
-  {% if error %}
-    <p style="color: red;"><strong>⛔ {{ error }}</strong></p>
-  {% endif %}
-
   <form action="/add" method="POST">
     <input type="text" name="short_id" placeholder="Short Code" required>
     <input type="text" name="destination" placeholder="Destination URL" required>
@@ -91,7 +87,7 @@
         <td>{{ row[2] }}</td>
         <td>
           <a href="/view-qr/{{ row[0] }}" target="_blank">
-            <img src="/view-qr/{{ row[0] }}" class="qr-thumb" alt="QR">
+            <img src="/view-qr/{{ row[0] }}" class="qr-thumb">
           </a>
         </td>
         <td><button onclick="copyToClipboard('{{ request.host_url }}track?id={{ row[0] }}')">Copy</button></td>
@@ -137,9 +133,8 @@
 
     const raw = {{ locations|tojson }};
     const heatPoints = raw.map(loc => [loc[2], loc[3], 0.9]);
-
     if (heatPoints.length > 0) {
-      L.heatLayer(heatPoints, { radius: 25, blur: 15 }).addTo(map);
+      L.heatLayer(heatPoints, { radius: 30, blur: 15, maxZoom: 10 }).addTo(map);
     } else {
       console.warn("No valid scan locations to show on map.");
     }
