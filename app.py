@@ -1,10 +1,7 @@
-from flask import Flask, redirect, request, render_template, send_file
+from flask import Flask, redirect, request, render_template
 from datetime import datetime
 import sqlite3
 import os
-import qrcode
-import io
-import csv
 import requests
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
@@ -30,24 +27,48 @@ def append_to_sheet(data):
     except Exception as e:
         print("[SHEET ERROR]", e)
 
-@app.route('/test-sheets')
-def test_sheets():
-    try:
-        append_to_sheet(["test", str(datetime.utcnow()), "ip", "city", "country", "agent"])
-        return "✅ Google Sheets write succeeded!"
-    except Exception as e:
-        return f"❌ Sheets error: {e}"
+@app.route('/')
+def home():
+    return redirect('/dashboard')
 
-@app.route('/force-fake-scan')
-def force_fake_scan():
-    short_id = "blondart"
+@app.route('/dashboard')
+def dashboard():
+    with sqlite3.connect(DB_FILE) as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT r.short_id, r.destination, COUNT(l.id) as scan_count
+            FROM redirects r
+            LEFT JOIN logs l ON r.short_id = l.short_id
+            GROUP BY r.short_id
+        """)
+        stats = cursor.fetchall()
+
+        cursor.execute("SELECT short_id, timestamp, lat, lon, city, country FROM logs WHERE lat != 0 AND lon != 0")
+        locations = cursor.fetchall()
+
+    return render_template('dashboard.html', stats=stats, locations=locations)
+
+@app.route('/track')
+def track():
+    short_id = request.args.get('id')
+    if not short_id:
+        return "Missing tracking ID", 400
+
+    user_agent = request.headers.get('User-Agent', '')[:250]
+    ip = request.remote_addr
     timestamp = datetime.utcnow()
-    ip = "8.8.8.8"
-    user_agent = "FakeTestAgent"
-    city = "London"
-    country = "UK"
-    lat = 51.5074
-    lon = -0.1278
+
+    try:
+        geo = requests.get(f"http://ip-api.com/json/{ip}").json()
+        print("[GEO DEBUG]", geo)
+        city = geo.get('city', '')
+        country = geo.get('country', '')
+        lat = geo.get('lat', 0)
+        lon = geo.get('lon', 0)
+    except Exception as geo_err:
+        print("[GEO ERROR]", geo_err)
+        city = country = ''
+        lat = lon = 0
 
     with sqlite3.connect(DB_FILE) as conn:
         cursor = conn.cursor()
@@ -57,12 +78,14 @@ def force_fake_scan():
         """, (short_id, timestamp, user_agent, ip, city, country, lat, lon))
         conn.commit()
 
-    append_to_sheet([short_id, str(timestamp), ip, city, country, user_agent])
-    return "✅ Fake scan with location added!"
+        dest = cursor.execute("SELECT destination FROM redirects WHERE short_id = ?", (short_id,)).fetchone()
 
-@app.route('/')
-def home():
-    return redirect('/dashboard')
+    append_to_sheet([short_id, str(timestamp), ip, city, country, user_agent])
+
+    if dest:
+        return redirect(dest[0])
+    else:
+        return "Invalid tracking code", 404
 
 def init_db():
     with sqlite3.connect(DB_FILE) as conn:
@@ -85,58 +108,11 @@ def init_db():
                 destination TEXT
             )
         ''')
-        conn.execute("INSERT OR IGNORE INTO redirects (short_id, destination) VALUES (?, ?)", ("blondart", "https://www.blondart.co.uk"))
+        conn.execute("INSERT OR IGNORE INTO redirects (short_id, destination) VALUES (?, ?)",
+                     ("blondart", "https://www.blondart.co.uk"))
 
-@app.route('/track')
-def track():
-    short_id = request.args.get('id')
-    if not short_id:
-        print("[TRACK] No shortcode provided.")
-        return "Missing tracking ID", 400
-
-    user_agent = request.headers.get('User-Agent', '').replace('\n', ' ').replace('\r', ' ')[:250]
-    ip = request.remote_addr
-    timestamp = datetime.utcnow()
-
-    try:
-        geo = requests.get(f"http://ip-api.com/json/{ip}").json()
-        print("[GEO DEBUG]", geo)
-        city = geo.get('city', '')
-        country = geo.get('country', '')
-        lat = geo.get('lat', 0)
-        lon = geo.get('lon', 0)
-    except Exception as geo_err:
-        print("[GEO ERROR]", geo_err)
-        city, country = '', ''
-        lat, lon = 0, 0
-
-    print(f"[TRACK] Logging scan: {short_id}, IP: {ip}, Location: {city}, {country}")
-
-    with sqlite3.connect(DB_FILE) as conn:
-        cursor = conn.cursor()
-        cursor.execute("""
-            INSERT INTO logs (short_id, timestamp, user_agent, ip, city, country, lat, lon)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, (short_id, timestamp, user_agent, ip, city, country, lat, lon))
-        conn.commit()
-        dest = cursor.execute("SELECT destination FROM redirects WHERE short_id = ?", (short_id,)).fetchone()
-
-    sheet_row = [short_id, str(timestamp), ip, city, country, user_agent]
-    print(f"[TRACK] About to write this row to Google Sheet: {sheet_row}")
-    try:
-        append_to_sheet(sheet_row)
-        print("[TRACK] ✅ Sheet write successful")
-    except Exception as sheet_error:
-        print("[TRACK] ❌ Sheet write FAILED:", sheet_error)
-
-    if dest:
-        return redirect(dest[0])
-    else:
-        return "Invalid tracking code", 404
-
-# === RUN ===
 if __name__ == '__main__':
     if not os.path.exists(DB_FILE):
         init_db()
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
