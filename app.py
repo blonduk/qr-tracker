@@ -193,8 +193,5 @@ def export_csv():
 
 # === RUN ===
 if __name__ == '__main__':
-    if not os.path.exists(DB_FILE):
-        init_db()
-    else:
-        print("[INFO] DB already exists — skipping init")
+    init_db()  # Always ensure tables exist and logs are restored
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))
