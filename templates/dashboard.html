@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>QR Tracker Dashboard</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     body {
       font-family: sans-serif;
@@ -61,8 +61,8 @@
   <h1>QR Tracker Dashboard</h1>
 
   <form action="/add" method="POST">
-    <input type="text" name="short_id" placeholder="Short Code" required>
-    <input type="text" name="destination" placeholder="Destination URL" required>
+    <input type="text" name="short_id" placeholder="Short Code" required />
+    <input type="text" name="destination" placeholder="Destination URL" required />
     <button type="submit">Add New Redirect</button>
   </form>
 
@@ -93,14 +93,14 @@
         <td>{{ scan_count }}</td>
         <td>
           <a href="/view-qr/{{ short_id }}" target="_blank">
-            <img src="/view-qr/{{ short_id }}" class="qr-thumb">
+            <img src="/view-qr/{{ short_id }}" class="qr-thumb" />
           </a>
         </td>
         <td><button onclick="copyToClipboard('{{ request.host_url }}track?id={{ short_id }}')">Copy</button></td>
         <td>
           <form action="/edit" method="POST" style="display:inline;">
-            <input type="hidden" name="short_id" value="{{ short_id }}">
-            <input type="text" name="new_destination" placeholder="New URL">
+            <input type="hidden" name="short_id" value="{{ short_id }}" />
+            <input type="text" name="new_destination" placeholder="New URL" />
             <button type="submit">Update</button>
           </form>
         </td>
@@ -137,10 +137,16 @@
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
-    // Leaflet heat layer format: [lat, lon, intensity]
-    const locations = {{ locations|tojson }};
-    const heatPoints = locations.map(loc => [loc[2], loc[3], 0.7]); // lat, lon, intensity
-    L.heatLayer(heatPoints, { radius: 25 }).addTo(map);
+    const rawLocations = {{ locations|tojson }};
+    const heatPoints = rawLocations.map(loc => [loc[2], loc[3], 0.7]); // lat, lon, intensity
+
+    console.log("🔥 Heatmap locations:", heatPoints);
+
+    if (heatPoints.length > 0) {
+      L.heatLayer(heatPoints, { radius: 25 }).addTo(map);
+    } else {
+      console.warn("No valid scan locations to show on map.");
+    }
   </script>
 </body>
 </html>
