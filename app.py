@@ -38,35 +38,8 @@ def append_to_scan_sheet(data):
     except Exception as e:
         print("[SHEET ERROR]", e)
 
-@app.route('/')
-def home():
-    return redirect('/dashboard')
-
-@app.route('/track')
-def track():
-    short_id = request.args.get('id')
-    if not short_id:
-        return "Missing ID", 400
-
-    redirects = get_redirects_from_sheet()
-    destination = redirects.get(short_id)
-
-    user_agent = request.headers.get('User-Agent', '').replace('\n', ' ').replace('\r', ' ')[:250]
-    ip = request.remote_addr
-    timestamp = datetime.utcnow()
-
-    # Geo IP lookup
-    try:
-        geo = requests.get(f"http://ip-api.com/json/{ip}").json()
-        city = geo.get("city", "")
-        country = geo.get("country", "")
-        lat = geo.get("lat", 0)
-        lon = geo.get("lon", 0)
-    except Exception as e:
-        print("[GEO ERROR]", e)
-        city, country, lat, lon = '', '', 0, 0
-
-    # Log scan to local DB
+# === ENSURE DB TABLE EXISTS ===
+def ensure_logs_table():
     with sqlite3.connect(DB_FILE) as conn:
         conn.execute("""
             CREATE TABLE IF NOT EXISTS logs (
@@ -81,13 +54,44 @@ def track():
                 lon REAL
             )
         """)
+        conn.commit()
+
+@app.route('/')
+def home():
+    return redirect('/dashboard')
+
+@app.route('/track')
+def track():
+    ensure_logs_table()
+
+    short_id = request.args.get('id')
+    if not short_id:
+        return "Missing ID", 400
+
+    redirects = get_redirects_from_sheet()
+    destination = redirects.get(short_id)
+
+    user_agent = request.headers.get('User-Agent', '').replace('\n', ' ').replace('\r', ' ')[:250]
+    ip = request.remote_addr
+    timestamp = datetime.utcnow()
+
+    try:
+        geo = requests.get(f"http://ip-api.com/json/{ip}").json()
+        city = geo.get("city", "")
+        country = geo.get("country", "")
+        lat = geo.get("lat", 0)
+        lon = geo.get("lon", 0)
+    except Exception as e:
+        print("[GEO ERROR]", e)
+        city, country, lat, lon = '', '', 0, 0
+
+    with sqlite3.connect(DB_FILE) as conn:
         conn.execute("""
             INSERT INTO logs (short_id, timestamp, ip, user_agent, city, country, lat, lon)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, (short_id, timestamp, ip, user_agent, city, country, lat, lon))
         conn.commit()
 
-    # Log to Google Sheets
     append_to_scan_sheet([short_id, str(timestamp), ip, city, country, user_agent])
 
     if destination:
@@ -96,6 +100,8 @@ def track():
 
 @app.route('/dashboard')
 def dashboard():
+    ensure_logs_table()
+
     redirects = get_redirects_from_sheet()
     stats = []
     with sqlite3.connect(DB_FILE) as conn:
@@ -133,6 +139,8 @@ def download_qr(short_id):
 
 @app.route('/export-csv')
 def export_csv():
+    ensure_logs_table()
+
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow(['Short Code', 'Timestamp', 'IP', 'City', 'Country', 'User Agent'])
@@ -145,5 +153,6 @@ def export_csv():
     return send_file(io.BytesIO(output.getvalue().encode()), mimetype='text/csv', as_attachment=True, download_name='qr-scan-logs.csv')
 
 if __name__ == '__main__':
+    ensure_logs_table()
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
