@@ -26,45 +26,39 @@ def get_sheet(name):
     return gs_client().open(name).sheet1
 
 def get_redirects():
-    """Return dict: {short_code: destination} from QR Redirects sheet."""
     sheet = get_sheet("QR Redirects")
     rows = sheet.get_all_records()
     return {r["Short Code"]: r["Destination"] for r in rows if r["Short Code"]}
 
-def add_redirect_sheet(short, dest):
-    sheet = get_sheet("QR Redirects")
-    sheet.append_row([short, dest])
+def add_redirect_sheet(s, d):
+    get_sheet("QR Redirects").append_row([s, d])
 
-def edit_redirect_sheet(short, new_dest):
-    sheet = get_sheet("QR Redirects")
-    cell = sheet.find(short)
-    if cell:
-        sheet.update_cell(cell.row, 2, new_dest)
+def edit_redirect_sheet(s, d):
+    sh = get_sheet("QR Redirects")
+    cell = sh.find(s)
+    if cell: sh.update_cell(cell.row, 2, d)
 
-def delete_redirect_sheet(short):
-    sheet = get_sheet("QR Redirects")
-    cell = sheet.find(short)
-    if cell:
-        sheet.delete_row(cell.row)
+def delete_redirect_sheet(s):
+    sh = get_sheet("QR Redirects")
+    cell = sh.find(s)
+    if cell: sh.delete_row(cell.row)
 
 def append_to_archive(row):
-    sheet = get_sheet("QR Scan Archive")
-    sheet.append_row(row)
+    get_sheet("QR Scan Archive").append_row(row)
 
 def restore_logs_from_sheet():
-    """On startup, pull everything from the Scan Archive sheet into SQLite logs."""
-    sheet = get_sheet("QR Scan Archive")
-    records = sheet.get_all_records()
+    sh = get_sheet("QR Scan Archive")
+    recs = sh.get_all_records()
     with sqlite3.connect(DB_FILE) as conn:
         conn.execute("""
             CREATE TABLE IF NOT EXISTS logs (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              id INTEGER PRIMARY KEY,
               short_id TEXT, timestamp TEXT,
               ip TEXT, city TEXT, country TEXT,
               user_agent TEXT
             )
         """)
-        for r in records:
+        for r in recs:
             conn.execute("""
                 INSERT OR IGNORE INTO logs
                 (short_id,timestamp,ip,city,country,user_agent)
@@ -77,12 +71,9 @@ def restore_logs_from_sheet():
         conn.commit()
 
 # ————————————————
-# App startup & DB init
+# DB init & restore on import
 # ————————————————
-@app.before_first_request
-def initialize():
-    # ensure logs table exists & restore from sheet
-    restore_logs_from_sheet()
+restore_logs_from_sheet()
 
 # ————————————————
 # Tracking endpoint
@@ -93,21 +84,29 @@ def track():
     if not short:
         return "Missing ID", 400
 
-    redirects = get_redirects()
-    dest = redirects.get(short)
+    dests = get_redirects()
+    dest = dests.get(short)
     ua = request.headers.get('User-Agent','')[:200]
     ip = request.remote_addr
     ts = datetime.utcnow().isoformat(sep=' ', timespec='seconds')
 
     # Geo lookup
     try:
-        g = requests.get(f"http://ip-api.com/json/{ip}").json()
-        city, country = g.get("city",""), g.get("country","")
+        geo = requests.get(f"http://ip-api.com/json/{ip}").json()
+        city, country = geo.get("city",""), geo.get("country","")
     except:
         city, country = "",""
 
     # Log locally
     with sqlite3.connect(DB_FILE) as conn:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS logs (
+             id INTEGER PRIMARY KEY,
+             short_id TEXT, timestamp TEXT,
+             ip TEXT, city TEXT, country TEXT,
+             user_agent TEXT
+            )
+        """)
         conn.execute("""
             INSERT INTO logs
             (short_id,timestamp,ip,city,country,user_agent)
@@ -115,7 +114,7 @@ def track():
         """,(short,ts,ip,city,country,ua))
         conn.commit()
 
-    # Log to Sheets
+    # Log to Sheet
     append_to_archive([short, ts, ip, city, country, ua])
 
     if dest:
@@ -127,17 +126,15 @@ def track():
 # ————————————————
 @app.route('/dashboard')
 def dashboard():
-    redirects = get_redirects()
+    dests = get_redirects()
     stats = []
     with sqlite3.connect(DB_FILE) as conn:
         cur = conn.cursor()
-        for s,d in redirects.items():
-            count = cur.execute(
-                "SELECT COUNT(*) FROM logs WHERE short_id=?", (s,)
-            ).fetchone()[0]
-            stats.append((s,d,count))
+        for s,d in dests.items():
+            cnt = cur.execute("SELECT COUNT(*) FROM logs WHERE short_id=?", (s,)).fetchone()[0]
+            stats.append((s,d,cnt))
         locs = cur.execute(
-            "SELECT lat,lon FROM logs WHERE city != '' AND lat IS NOT NULL AND lon IS NOT NULL"
+            "SELECT ip,city,country FROM logs WHERE city!=''"
         ).fetchall()
     return render_template("dashboard.html", stats=stats, locations=locs)
 
@@ -146,16 +143,16 @@ def dashboard():
 # ————————————————
 @app.route('/add', methods=['POST'])
 def add():
-    short = request.form['short_id'].strip()
-    dest  = request.form['destination'].strip()
-    add_redirect_sheet(short,dest)
+    s = request.form['short_id'].strip()
+    d = request.form['destination'].strip()
+    add_redirect_sheet(s,d)
     return redirect('/dashboard')
 
 @app.route('/edit', methods=['POST'])
 def edit():
-    short = request.form['short_id']
-    newd  = request.form['new_destination']
-    edit_redirect_sheet(short,newd)
+    s = request.form['short_id']
+    d = request.form['new_destination']
+    edit_redirect_sheet(s,d)
     return redirect('/dashboard')
 
 @app.route('/delete/<short_id>', methods=['POST'])
@@ -167,22 +164,19 @@ def delete(short_id):
     return redirect('/dashboard')
 
 # ————————————————
-# QR generators & CSV export
+# QR & CSV endpoints
 # ————————————————
 @app.route('/view-qr/<short_id>')
 def view_qr(short_id):
     url = f"{request.host_url}track?id={short_id}"
-    img = qrcode.make(url)
-    buf = io.BytesIO(); img.save(buf); buf.seek(0)
+    img = qrcode.make(url); buf=io.BytesIO(); img.save(buf); buf.seek(0)
     return send_file(buf, mimetype='image/png')
 
 @app.route('/download-qr/<short_id>')
 def download_qr(short_id):
     url = f"{request.host_url}track?id={short_id}"
-    img = qrcode.make(url)
-    buf = io.BytesIO(); img.save(buf); buf.seek(0)
-    return send_file(buf, mimetype='image/png',
-                     as_attachment=True,
+    img = qrcode.make(url); buf=io.BytesIO(); img.save(buf); buf.seek(0)
+    return send_file(buf, mimetype='image/png', as_attachment=True,
                      download_name=f"{short_id}-qr.png")
 
 @app.route('/export-csv')
@@ -191,21 +185,16 @@ def export_csv():
         rows = conn.execute(
             "SELECT short_id,timestamp,ip,city,country,user_agent FROM logs ORDER BY timestamp DESC"
         ).fetchall()
-    mem = io.StringIO()
-    w = csv.writer(mem)
+    mem=io.StringIO(); w=csv.writer(mem)
     w.writerow(['Short Code','Timestamp','IP','City','Country','User Agent'])
-    w.writerows(rows)
-    mem.seek(0)
-    return send_file(io.BytesIO(mem.getvalue().encode()),
-                     mimetype='text/csv',
-                     as_attachment=True,
-                     download_name='qr-logs.csv')
+    w.writerows(rows); mem.seek(0)
+    return send_file(io.BytesIO(mem.getvalue().encode()), mimetype='text/csv',
+                     as_attachment=True, download_name='qr-logs.csv')
 
 # ————————————————
 # Launch
 # ————————————————
 if __name__ == '__main__':
-    # make sure archive & redirects sheets exist or error early
-    get_sheet("QR Redirects")
-    get_sheet("QR Scan Archive")
+    # verify sheets exist early
+    get_sheet("QR Redirects"); get_sheet("QR Scan Archive")
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT",5000)))
