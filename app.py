@@ -197,7 +197,37 @@ def delete(short_id):
     return redirect("/dashboard")
 
 # === RUN ===
+def safe_boot():
+    with sqlite3.connect(DB_FILE) as conn:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                short_id TEXT,
+                timestamp DATETIME,
+                ip TEXT,
+                city TEXT,
+                country TEXT,
+                user_agent TEXT
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS redirects (
+                short_id TEXT PRIMARY KEY,
+                destination TEXT
+            )
+        """)
+        conn.commit()
+
+        # Check if logs is empty
+        log_count = conn.execute("SELECT COUNT(*) FROM logs").fetchone()[0]
+        if log_count == 0:
+            print("[BOOT] Empty logs detected. Restoring from Sheets.")
+            restore_logs_from_sheet()
+        else:
+            print(f"[BOOT] Logs already present ({log_count} rows). Skipping restore.")
+
 if __name__ == '__main__':
-    init_db_and_restore()
+    safe_boot()
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+
