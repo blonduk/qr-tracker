@@ -6,139 +6,31 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
   <style>
-    body {
-      font-family: sans-serif;
-      background-color: #f3f3f3;
-      color: #222;
-      padding: 2rem;
-      transition: background-color 0.3s, color 0.3s;
-    }
-    .dark-mode {
-      background-color: #121212;
-      color: #f3f3f3;
-    }
-    .dark-mode table, .dark-mode th, .dark-mode td {
-      border-color: #555;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 2rem;
-    }
-    th, td {
-      border: 1px solid #ccc;
-      padding: 0.6rem;
-      text-align: left;
-    }
-    form {
-      margin-bottom: 2rem;
-    }
-    input[type="text"] {
-      padding: 0.4rem;
-      margin-right: 1rem;
-    }
-    button {
-      padding: 0.4rem 1rem;
-    }
-    .qr-thumb {
-      width: 80px;
-      height: 80px;
-      object-fit: contain;
-      border: 1px solid #ccc;
-      background: white;
-      padding: 4px;
-    }
-    #map {
-      height: 400px;
-      margin-bottom: 2rem;
-    }
+    /* … your existing styles … */
   </style>
 </head>
 <body>
-
-  <button onclick="toggleDarkMode()" style="position: fixed; top: 10px; left: 10px;">🌓</button>
-
-  <h1>QR Tracker Dashboard</h1>
-
-  <form action="/add" method="POST">
-    <input type="text" name="short_id" placeholder="Short Code" required>
-    <input type="text" name="destination" placeholder="Destination URL" required>
-    <button type="submit">Add New Redirect</button>
-  </form>
-
-  <h2>Scan Stats</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>Short Code</th>
-        <th>Destination</th>
-        <th>Scans</th>
-        <th>QR</th>
-        <th>Copy Link</th>
-        <th>Edit</th>
-        <th>Delete</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for row in stats %}
-      <tr>
-        <td>{{ row[0] }}</td>
-        <td>{{ row[1] }}</td>
-        <td>{{ row[2] }}</td>
-        <td>
-          <a href="/view-qr/{{ row[0] }}" target="_blank">
-            <img src="/view-qr/{{ row[0] }}" class="qr-thumb">
-          </a>
-        </td>
-        <td><button onclick="copyToClipboard('{{ request.host_url }}track?id={{ row[0] }}')">Copy</button></td>
-        <td>
-          <form action="/edit" method="POST" style="display:inline;">
-            <input type="hidden" name="short_id" value="{{ row[0] }}">
-            <input type="text" name="new_destination" placeholder="New URL">
-            <button type="submit">Update</button>
-          </form>
-        </td>
-        <td>
-          <form action="/delete/{{ row[0] }}" method="POST" style="display:inline;">
-            <button type="submit" onclick="return confirm('Are you sure?')">Delete</button>
-          </form>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <!-- … header, dark‐mode toggle, stats table … -->
 
   <h2>Scan Heatmap</h2>
-  <div id="map"></div>
-
-  <a href="/export-csv" target="_blank">Download Scan Logs (CSV)</a>
+  <div id="map" style="height:400px;"></div>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
   <script>
-    function toggleDarkMode() {
-      document.body.classList.toggle("dark-mode");
-    }
-
-    function copyToClipboard(text) {
-      navigator.clipboard.writeText(text).then(() => {
-        alert("Copied to clipboard!");
-      });
-    }
-
-    const map = L.map('map').setView([20, 0], 2);
+    const map = L.map('map').setView([20,0],2);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
+    // locations is a list of [lat, lon]
     const raw = {{ locations|tojson }};
-    const heatPoints = raw.map(loc => [loc[2], loc[3], 0.9]);
-    if (heatPoints.length > 0) {
-      L.heatLayer(heatPoints, { radius: 30, blur: 15, maxZoom: 10 }).addTo(map);
+    if (raw.length) {
+      const heat = raw.map(p => [p[0], p[1], 0.8]);
+      L.heatLayer(heat, { radius: 25, blur: 15 }).addTo(map);
     } else {
-      console.warn("No valid scan locations to show on map.");
+      console.warn("No scan coordinates for heatmap");
     }
   </script>
-
 </body>
 </html>
