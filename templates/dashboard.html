@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>QR Tracker Dashboard</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     body {
       font-family: sans-serif;
@@ -31,6 +31,7 @@
     }
     button {
       padding: 0.4rem 1rem;
+      cursor: pointer;
     }
     .qr-thumb {
       width: 80px;
@@ -51,8 +52,11 @@
     .dark-mode table, .dark-mode th, .dark-mode td {
       border-color: #555;
     }
+    .dark-mode a, .dark-mode button {
+      color: #f3f3f3;
+    }
   </style>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
 </head>
 <body>
 
@@ -61,16 +65,10 @@
   <h1>QR Tracker Dashboard</h1>
 
   <form action="/add" method="POST">
-    <input type="text" name="short_id" placeholder="Short Code" required />
-    <input type="text" name="destination" placeholder="Destination URL" required />
+    <input type="text" name="short_id" placeholder="Short Code" required>
+    <input type="text" name="destination" placeholder="Destination URL" required>
     <button type="submit">Add New Redirect</button>
   </form>
-
-  {% if new_code %}
-    <p>✅ <strong>{{ new_code }}</strong> created. 
-    <a href="/view-qr/{{ new_code }}" target="_blank">View QR</a> | 
-    <a href="/download-qr/{{ new_code }}" target="_blank">Download QR</a></p>
-  {% endif %}
 
   <h2>Scan Stats</h2>
   <table>
@@ -86,38 +84,40 @@
       </tr>
     </thead>
     <tbody>
-    {% for short_id, destination, scan_count in stats %}
+      {% for code, destination, count in stats %}
       <tr>
-        <td>{{ short_id }}</td>
+        <td>{{ code }}</td>
         <td>{{ destination }}</td>
-        <td>{{ scan_count }}</td>
+        <td>{{ count }}</td>
         <td>
-          <a href="/view-qr/{{ short_id }}" target="_blank">
-            <img src="/view-qr/{{ short_id }}" class="qr-thumb" />
+          <a href="/view-qr/{{ code }}" target="_blank">
+            <img src="/view-qr/{{ code }}" class="qr-thumb" alt="QR">
           </a>
         </td>
-        <td><button onclick="copyToClipboard('{{ request.host_url }}track?id={{ short_id }}')">Copy</button></td>
+        <td>
+          <button onclick="copyToClipboard('{{ request.host_url }}track?id={{ code }}')">Copy</button>
+        </td>
         <td>
           <form action="/edit" method="POST" style="display:inline;">
-            <input type="hidden" name="short_id" value="{{ short_id }}" />
-            <input type="text" name="new_destination" placeholder="New URL" />
+            <input type="hidden" name="short_id" value="{{ code }}">
+            <input type="text" name="new_destination" placeholder="New URL">
             <button type="submit">Update</button>
           </form>
         </td>
         <td>
-          <form action="/delete/{{ short_id }}" method="POST" style="display:inline;">
+          <form action="/delete/{{ code }}" method="POST" style="display:inline;">
             <button type="submit" onclick="return confirm('Are you sure?')">Delete</button>
           </form>
         </td>
       </tr>
-    {% endfor %}
+      {% endfor %}
     </tbody>
   </table>
 
   <h2>Scan Heatmap</h2>
   <div id="map"></div>
 
-  <a href="/export-csv" target="_blank">Download Scan Logs (CSV)</a>
+  <a href="/export-csv" target="_blank">📥 Download Scan Logs (CSV)</a>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
@@ -133,14 +133,12 @@
     }
 
     const map = L.map('map').setView([20, 0], 2);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors'
+    L.tileLayer('https://tile.openstreetmap.fr/osm-en/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors, Tiles: OSM France (EN)'
     }).addTo(map);
 
-    const rawLocations = {{ locations|tojson }};
-    const heatPoints = rawLocations.map(loc => [loc[2], loc[3], 0.7]); // lat, lon, intensity
-
-    console.log("🔥 Heatmap locations:", heatPoints);
+    const heatData = {{ locations | tojson }};
+    const heatPoints = heatData.map(p => [p[0], p[1], 0.7]);
 
     if (heatPoints.length > 0) {
       L.heatLayer(heatPoints, { radius: 25 }).addTo(map);
@@ -148,5 +146,6 @@
       console.warn("No valid scan locations to show on map.");
     }
   </script>
+
 </body>
 </html>
