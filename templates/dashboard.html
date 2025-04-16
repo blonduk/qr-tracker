@@ -4,35 +4,65 @@
   <meta charset="UTF-8">
   <title>QR Tracker Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
   <style>
     body {
       font-family: sans-serif;
       background-color: #f3f3f3;
       color: #222;
       padding: 2rem;
-      transition: background-color 0.3s, color 0.3s;
     }
-    table { width: 100%; border-collapse: collapse; margin-bottom: 2rem; }
-    th, td { border: 1px solid #ccc; padding: 0.6rem; text-align: left; }
-    form { margin-bottom: 2rem; }
-    input[type="text"] { padding: 0.4rem; margin-right: 1rem; }
-    button { padding: 0.4rem 1rem; cursor: pointer; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 2rem;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 0.6rem;
+    }
+
     .qr-thumb {
-      width: 80px; height: 80px;
+      width: 80px;
+      height: 80px;
       object-fit: contain;
       border: 1px solid #ccc;
       background: white;
       padding: 4px;
     }
-    #map { height: 400px; margin-bottom: 2rem; }
-    .dark-mode { background-color: #121212; color: #f3f3f3; }
-    .dark-mode table, .dark-mode th, .dark-mode td { border-color: #555; }
+
+    #map {
+      height: 400px;
+      margin-top: 2rem;
+    }
+
+    .dark-mode {
+      background-color: #121212;
+      color: #f3f3f3;
+    }
+
+    .dark-mode table, .dark-mode th, .dark-mode td {
+      border-color: #555;
+    }
+
+    button {
+      padding: 0.4rem 1rem;
+    }
+
+    .dark-toggle {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      padding: 0.5rem 1rem;
+    }
   </style>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
 </head>
 <body>
 
-  <button onclick="toggleDarkMode()" style="position: fixed; top: 10px; left: 10px;">🌓</button>
+  <button class="dark-toggle" onclick="toggleDarkMode()">🌓</button>
 
   <h1>QR Tracker Dashboard</h1>
 
@@ -56,14 +86,14 @@
       </tr>
     </thead>
     <tbody>
-      {% for code, destination, count in stats %}
+      {% for code, dest, count in stats %}
       <tr>
         <td>{{ code }}</td>
-        <td>{{ destination }}</td>
+        <td>{{ dest }}</td>
         <td>{{ count }}</td>
         <td>
           <a href="/view-qr/{{ code }}" target="_blank">
-            <img src="/view-qr/{{ code }}" class="qr-thumb" alt="QR">
+            <img src="/view-qr/{{ code }}" class="qr-thumb">
           </a>
         </td>
         <td>
@@ -89,7 +119,7 @@
   <h2>Scan Heatmap</h2>
   <div id="map"></div>
 
-  <a href="/export-csv" target="_blank">📥 Download Scan Logs (CSV)</a>
+  <a href="/export-csv" target="_blank">Download Scan Logs (CSV)</a>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
@@ -105,33 +135,30 @@
     }
 
     const map = L.map('map').setView([20, 0], 2);
-    L.tileLayer('https://tile.openstreetmap.fr/osm-en/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors, Tiles: OSM France (EN)'
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
-    const heatData = {{ locations | tojson }};
-    console.log("🔥 Heatmap raw data:", heatData);
+    const raw = {{ locations|tojson }};
+    const heatPoints = raw.map(p => [p[0], p[1], 1]);
 
-    const heatPoints = {{ locations | tojson }};
-console.log("🔥 Heatmap points:", heatPoints);
+    console.log("🔥 Heat points:", heatPoints);
 
-if (heatPoints.length > 0) {
-  L.heatLayer(heatPoints.map(p => [p[0], p[1], 1]), {
-    radius: 35,
-    blur: 25,
-    maxZoom: 10,
-    gradient: {
-      0.4: 'blue',
-      0.6: 'lime',
-      0.8: 'orange',
-      1.0: 'red'
+    if (heatPoints.length > 0) {
+      L.heatLayer(heatPoints, {
+        radius: 40,
+        blur: 25,
+        gradient: {
+          0.4: 'blue',
+          0.6: 'lime',
+          0.8: 'orange',
+          1.0: 'red'
+        },
+        maxZoom: 10
+      }).addTo(map);
+    } else {
+      console.warn("No valid points to display.");
     }
-  }).addTo(map);
-} else {
-  console.warn("No heat points to show");
-}
-
   </script>
-
 </body>
 </html>
