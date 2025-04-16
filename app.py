@@ -35,7 +35,7 @@ def restore_logs_from_sheet():
         with sqlite3.connect(DB_FILE) as conn:
             for row in rows:
                 conn.execute("""
-                    INSERT OR IGNORE INTO logs (short_id, timestamp, ip, city, country, user_agent)
+                    INSERT INTO logs (short_id, timestamp, ip, city, country, user_agent)
                     VALUES (?, ?, ?, ?, ?, ?)
                 """, (
                     row.get("Short Code"),
@@ -193,5 +193,5 @@ def export_csv():
 
 # === RUN ===
 if __name__ == '__main__':
-    init_db()  # always initialize
+    init_db()
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))
