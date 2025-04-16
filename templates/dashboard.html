@@ -12,49 +12,21 @@
       padding: 2rem;
       transition: background-color 0.3s, color 0.3s;
     }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 2rem;
-    }
-    th, td {
-      border: 1px solid #ccc;
-      padding: 0.6rem;
-      text-align: left;
-    }
-    form {
-      margin-bottom: 2rem;
-    }
-    input[type="text"] {
-      padding: 0.4rem;
-      margin-right: 1rem;
-    }
-    button {
-      padding: 0.4rem 1rem;
-      cursor: pointer;
-    }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 2rem; }
+    th, td { border: 1px solid #ccc; padding: 0.6rem; text-align: left; }
+    form { margin-bottom: 2rem; }
+    input[type="text"] { padding: 0.4rem; margin-right: 1rem; }
+    button { padding: 0.4rem 1rem; cursor: pointer; }
     .qr-thumb {
-      width: 80px;
-      height: 80px;
+      width: 80px; height: 80px;
       object-fit: contain;
       border: 1px solid #ccc;
       background: white;
       padding: 4px;
     }
-    #map {
-      height: 400px;
-      margin-bottom: 2rem;
-    }
-    .dark-mode {
-      background-color: #121212;
-      color: #f3f3f3;
-    }
-    .dark-mode table, .dark-mode th, .dark-mode td {
-      border-color: #555;
-    }
-    .dark-mode a, .dark-mode button {
-      color: #f3f3f3;
-    }
+    #map { height: 400px; margin-bottom: 2rem; }
+    .dark-mode { background-color: #121212; color: #f3f3f3; }
+    .dark-mode table, .dark-mode th, .dark-mode td { border-color: #555; }
   </style>
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
 </head>
@@ -138,12 +110,13 @@
     }).addTo(map);
 
     const heatData = {{ locations | tojson }};
-    const heatPoints = heatData.map(p => [p[0], p[1], 0.7]);
+    console.log("🔥 Heatmap raw data:", heatData);
 
+    const heatPoints = heatData.map(p => [p[0], p[1], 0.7]);
     if (heatPoints.length > 0) {
       L.heatLayer(heatPoints, { radius: 25 }).addTo(map);
     } else {
-      console.warn("No valid scan locations to show on map.");
+      console.warn("⚠️ No valid scan locations to show on map.");
     }
   </script>
 
