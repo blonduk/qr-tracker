@@ -18,8 +18,7 @@ def get_sheet():
     creds_path = '/etc/secrets/google-credentials.json'
     creds = ServiceAccountCredentials.from_json_keyfile_name(creds_path, scope)
     client = gspread.authorize(creds)
-    sheet = client.open("QR Scan Archive").sheet1
-    return sheet
+    return client.open("QR Scan Archive").sheet1
 
 def append_to_sheet(data):
     try:
@@ -30,6 +29,7 @@ def append_to_sheet(data):
     except Exception as e:
         print("[SHEET ERROR]", e)
 
+# === TEST ROUTE FOR SHEET ===
 @app.route('/test-sheets')
 def test_sheets():
     try:
@@ -38,16 +38,11 @@ def test_sheets():
     except Exception as e:
         return f"❌ Sheets error: {e}"
 
-@app.route('/log-test')
-def log_test():
-    print("[TEST] This is a log test from /log-test")
-    return "✅ Log test triggered"
-
 @app.route('/')
 def home():
     return redirect('/dashboard')
 
-# === DATABASE INIT ===
+# === DB INIT ===
 def init_db():
     with sqlite3.connect(DB_FILE) as conn:
         conn.execute('''
@@ -71,14 +66,13 @@ def init_db():
         ''')
         conn.execute("INSERT OR IGNORE INTO redirects (short_id, destination) VALUES (?, ?)", ("blondart", "https://www.blondart.co.uk"))
 
-# === TRACKING ROUTE ===
 @app.route('/track')
 def track():
     short_id = request.args.get('id')
     if not short_id:
-        return "Missing tracking ID", 400
+        return "Missing ID", 400
 
-    user_agent = request.headers.get('User-Agent', '').replace('\n', ' ').replace('\r', ' ')[:250]
+    user_agent = request.headers.get('User-Agent', '')[:250]
     ip = request.remote_addr
     timestamp = datetime.utcnow()
 
@@ -92,8 +86,6 @@ def track():
         print("[GEO ERROR]", geo_err)
         city, country, lat, lon = '', '', 0, 0
 
-    print(f"[TRACK] Logging scan: {short_id}, IP: {ip}, Location: {city}, {country}")
-
     with sqlite3.connect(DB_FILE) as conn:
         cursor = conn.cursor()
         cursor.execute("""
@@ -103,10 +95,10 @@ def track():
         conn.commit()
         dest = cursor.execute("SELECT destination FROM redirects WHERE short_id = ?", (short_id,)).fetchone()
 
+    # Write to Google Sheet
+    row = [short_id, str(timestamp), ip, city, country, user_agent]
     try:
-        sheet_row = [short_id, str(timestamp), ip, city, country, user_agent]
-        append_to_sheet(sheet_row)
-        print("[TRACK] ✅ Sheet write successful")
+        append_to_sheet(row)
     except Exception as sheet_error:
         print("[TRACK] ❌ Sheet write FAILED:", sheet_error)
 
@@ -115,31 +107,23 @@ def track():
     else:
         return "Invalid tracking code", 404
 
-# === DASHBOARD ===
 @app.route('/dashboard')
 def dashboard():
-    new_code = request.args.get('new')
     with sqlite3.connect(DB_FILE) as conn:
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT r.short_id, r.destination, COUNT(l.id) as scan_count
+            SELECT r.short_id, r.destination, COUNT(l.id)
             FROM redirects r
             LEFT JOIN logs l ON r.short_id = l.short_id
             GROUP BY r.short_id
         """)
         stats = cursor.fetchall()
 
-        cursor.execute("""
-            SELECT short_id, timestamp, lat, lon, city, country
-            FROM logs
-            WHERE lat IS NOT NULL AND lat != 0 AND lon IS NOT NULL AND lon != 0
-        """)
-        scan_locations = cursor.fetchall()
+        cursor.execute("SELECT lat, lon FROM logs WHERE lat != 0 AND lon != 0")
+        locations = cursor.fetchall()
 
-    locations = [[row[2], row[3]] for row in scan_locations]
-    return render_template('dashboard.html', stats=stats, new_code=new_code, locations=locations)
+    return render_template('dashboard.html', stats=stats, locations=locations)
 
-# === REDIRECT MANAGEMENT ===
 @app.route('/add', methods=['POST'])
 def add_redirect():
     short_id = request.form.get('short_id').strip()
@@ -154,7 +138,7 @@ def add_redirect():
         except sqlite3.IntegrityError:
             return "Shortcode already exists", 400
 
-    return redirect(f"/dashboard?new={short_id}")
+    return redirect("/dashboard")
 
 @app.route('/edit', methods=['POST'])
 def edit_redirect():
@@ -173,34 +157,30 @@ def delete_redirect(short_id):
         conn.commit()
     return redirect("/dashboard")
 
-# === QR CODE GEN & VIEW ===
 @app.route('/view-qr/<short_id>')
 def view_qr(short_id):
     try:
-        track_url = f"{request.host_url.rstrip('/')}/track?id={short_id}"
-        img = qrcode.make(track_url)
-        buf = io.BytesIO()
-        img.save(buf, format='PNG')
-        buf.seek(0)
-        return send_file(buf, mimetype='image/png')
-    except Exception as e:
-        print("[QR VIEW ERROR]", e)
-        return "QR Error", 500
+        import PIL
+        from PIL import Image
+    except ImportError:
+        return "[QR VIEW ERROR] No module named 'PIL'", 500
+
+    track_url = f"{request.host_url.rstrip('/')}/track?id={short_id}"
+    img = qrcode.make(track_url).resize((300, 300))
+    buf = io.BytesIO()
+    img.save(buf, format='PNG')
+    buf.seek(0)
+    return send_file(buf, mimetype='image/png')
 
 @app.route('/download-qr/<short_id>')
 def download_qr(short_id):
-    try:
-        track_url = f"{request.host_url.rstrip('/')}/track?id={short_id}"
-        img = qrcode.make(track_url)
-        buf = io.BytesIO()
-        img.save(buf, format='PNG')
-        buf.seek(0)
-        return send_file(buf, mimetype='image/png', as_attachment=True, download_name=f'qr-{short_id}.png')
-    except Exception as e:
-        print("[QR DOWNLOAD ERROR]", e)
-        return "QR Download Error", 500
+    track_url = f"{request.host_url.rstrip('/')}/track?id={short_id}"
+    img = qrcode.make(track_url).resize((1000, 1000))
+    buf = io.BytesIO()
+    img.save(buf, format='PNG')
+    buf.seek(0)
+    return send_file(buf, mimetype='image/png', as_attachment=True, download_name=f'qr-{short_id}.png')
 
-# === EXPORT TO CSV ===
 @app.route('/export-csv')
 def export_csv():
     output = io.StringIO()
@@ -214,17 +194,10 @@ def export_csv():
     output.seek(0)
     return send_file(io.BytesIO(output.getvalue().encode()), mimetype='text/csv', as_attachment=True, download_name='qr-scan-logs.csv')
 
-# === BOOT ===
-def ensure_db():
-    if not os.path.exists(DB_FILE):
-        print("[INIT] Creating new database...")
-        init_db()
-    else:
-        print("[INIT] Database exists")
+# === INITIALISE DB ON FIRST RUN ===
+if not os.path.exists(DB_FILE):
+    init_db()
 
-ensure_db()
-
-# For local testing
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
