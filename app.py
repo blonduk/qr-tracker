@@ -192,11 +192,8 @@ def export_csv():
     return send_file(io.BytesIO(output.getvalue().encode()), mimetype='text/csv', as_attachment=True, download_name='qr-logs.csv')
 
 # === Start App ===
-if __name__ == '__main__':
-    if not os.path.exists(DB_FILE):
-        init_db()
-    else:
-        # even if DB exists, make sure logs are synced from Google Sheets on every start
-        restore_logs()
+with app.app_context():
+    init_db()
 
+if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))
