@@ -28,27 +28,35 @@ def append_log_to_sheet(data):
     except Exception as e:
         print("[SHEET ERROR]", e)
 
-def restore_logs():
+def restore_logs_from_sheet():
     try:
         sheet = get_sheet("QR Scan Archive")
-        records = sheet.get_all_records(expected_headers=["Short Code", "Timestamp", "IP", "City", "Country", "User Agent"])
-        with sqlite3.connect(DB_FILE) as conn:
-            for row in records:
-                conn.execute("""
-                    INSERT INTO logs (short_id, timestamp, ip, city, country, user_agent)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                """, (
-                    row["Short Code"],
-                    row["Timestamp"],
-                    row["IP"],
-                    row["City"],
-                    row["Country"],
-                    row["User Agent"]
-                ))
-            conn.commit()
-        print("[RESTORE] ✅ Logs restored from sheet")
+        header_row = sheet.row_values(1)
+        print("[DEBUG] Google Sheet header row:", header_row)
+
+        expected_headers = ['Short Code', 'Timestamp', 'IP', 'City', 'Country', 'User Agent']
+        if set(expected_headers).issubset(set(header_row)):
+            rows = sheet.get_all_records()
+            with sqlite3.connect(DB_FILE) as conn:
+                for row in rows:
+                    conn.execute("""
+                        INSERT INTO logs (short_id, timestamp, ip, city, country, user_agent)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    """, (
+                        row.get("Short Code"),
+                        row.get("Timestamp"),
+                        row.get("IP"),
+                        row.get("City"),
+                        row.get("Country"),
+                        row.get("User Agent")
+                    ))
+                conn.commit()
+            print("[RESTORE] ✅ Logs restored from Google Sheets")
+        else:
+            print("[RESTORE ERROR] Header mismatch! Sheet headers were:", header_row)
+
     except Exception as e:
-        print("[RESTORE ERROR]", e)
+        print("[RESTORE EXCEPTION]", e)
 
 # === Init DB ===
 def init_db():
