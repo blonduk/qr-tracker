@@ -1,4 +1,4 @@
-from flask import Flask, redirect, request, render_template, send_file, session, url_for
+from flask import Flask, redirect, request, render_template, send_file
 from datetime import datetime
 import sqlite3
 import os
@@ -10,49 +10,44 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "supersecurekey")  # change this in production!
 DB_FILE = 'redirects.db'
 
-# === Login config ===
-USERNAME = "admin"
-PASSWORD = "blondqr2025"
-
-# === Google Sheets Setup ===
-def get_gsheet(sheet_name):
+# === GOOGLE SHEETS SETUP ===
+def get_sheet():
     scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
     creds_path = '/etc/secrets/google-credentials.json'
     creds = ServiceAccountCredentials.from_json_keyfile_name(creds_path, scope)
     client = gspread.authorize(creds)
-    sheet = client.open(sheet_name).sheet1
+    sheet = client.open("QR Scan Archive").sheet1
     return sheet
 
-def get_redirects_from_sheet():
+def append_to_sheet(data):
     try:
-        sheet = get_gsheet("QR Redirects")
-        rows = sheet.get_all_records()
-        redirects = {row["Short Code"].strip(): row["Destination"].strip() for row in rows if row["Short Code"] and row["Destination"]}
-        return redirects
-    except Exception as e:
-        print("[SHEETS ERROR] Failed to load redirects:", e)
-        return {}
-
-def append_redirect_to_sheet(short_id, destination):
-    try:
-        sheet = get_gsheet("QR Redirects")
-        sheet.append_row([short_id.strip(), destination.strip()])
-        return True
-    except Exception as e:
-        print("[SHEETS ERROR] Failed to add redirect:", e)
-        return False
-
-def append_to_scan_sheet(data):
-    try:
-        sheet = get_gsheet("QR Scan Archive")
+        print(f"[SHEET] Attempting to write row: {data}")
+        sheet = get_sheet()
         sheet.append_row(data)
+        print("[SHEET] ✅ Row appended successfully")
     except Exception as e:
-        print("[SHEETS ERROR] Scan log failed:", e)
+        print("[SHEET ERROR]", e)
 
-# === DB for logging ===
+@app.route('/test-sheets')
+def test_sheets():
+    try:
+        append_to_sheet(["test", str(datetime.utcnow()), "ip", "city", "country", "agent"])
+        return "✅ Google Sheets write succeeded!"
+    except Exception as e:
+        return f"❌ Sheets error: {e}"
+
+@app.route('/log-test')
+def log_test():
+    print("[TEST] This is a log test from /log-test")
+    return "✅ Log test triggered"
+
+@app.route('/')
+def home():
+    return redirect('/dashboard')
+
+# === DATABASE INIT ===
 def init_db():
     with sqlite3.connect(DB_FILE) as conn:
         conn.execute('''
@@ -68,45 +63,20 @@ def init_db():
                 lon REAL
             )
         ''')
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS redirects (
+                short_id TEXT PRIMARY KEY,
+                destination TEXT
+            )
+        ''')
+        conn.execute("INSERT OR IGNORE INTO redirects (short_id, destination) VALUES (?, ?)", ("blondart", "https://www.blondart.co.uk"))
 
-@app.route('/')
-def home():
-    return redirect('/dashboard')
-
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        entered_user = request.form.get('username')
-        entered_pass = request.form.get('password')
-        if entered_user == USERNAME and entered_pass == PASSWORD:
-            session['logged_in'] = True
-            return redirect('/dashboard')
-        else:
-            return render_template('login.html', error="Invalid credentials")
-    return render_template('login.html')
-
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect('/login')
-
-def login_required(route):
-    def wrapper(*args, **kwargs):
-        if not session.get('logged_in'):
-            return redirect(url_for('login'))
-        return route(*args, **kwargs)
-    wrapper.__name__ = route.__name__
-    return wrapper
-
+# === TRACKING ROUTE ===
 @app.route('/track')
 def track():
     short_id = request.args.get('id')
     if not short_id:
-        return "Missing ID", 400
-
-    redirects = get_redirects_from_sheet()
-    if short_id not in redirects:
-        return "Invalid tracking code", 404
+        return "Missing tracking ID", 400
 
     user_agent = request.headers.get('User-Agent', '').replace('\n', ' ').replace('\r', ' ')[:250]
     ip = request.remote_addr
@@ -120,59 +90,91 @@ def track():
         lon = geo.get('lon', 0)
     except Exception as geo_err:
         print("[GEO ERROR]", geo_err)
-        city, country = '', ''
-        lat, lon = 0, 0
+        city, country, lat, lon = '', '', 0, 0
+
+    print(f"[TRACK] Logging scan: {short_id}, IP: {ip}, Location: {city}, {country}")
 
     with sqlite3.connect(DB_FILE) as conn:
-        conn.execute("""
+        cursor = conn.cursor()
+        cursor.execute("""
             INSERT INTO logs (short_id, timestamp, user_agent, ip, city, country, lat, lon)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, (short_id, timestamp, user_agent, ip, city, country, lat, lon))
         conn.commit()
+        dest = cursor.execute("SELECT destination FROM redirects WHERE short_id = ?", (short_id,)).fetchone()
 
-    append_to_scan_sheet([short_id, str(timestamp), ip, city, country, user_agent])
-    return redirect(redirects[short_id])
+    try:
+        sheet_row = [short_id, str(timestamp), ip, city, country, user_agent]
+        append_to_sheet(sheet_row)
+        print("[TRACK] ✅ Sheet write successful")
+    except Exception as sheet_error:
+        print("[TRACK] ❌ Sheet write FAILED:", sheet_error)
 
+    if dest:
+        return redirect(dest[0])
+    else:
+        return "Invalid tracking code", 404
+
+# === DASHBOARD ===
 @app.route('/dashboard')
-@login_required
 def dashboard():
     new_code = request.args.get('new')
-    redirects = get_redirects_from_sheet()
-
     with sqlite3.connect(DB_FILE) as conn:
         cursor = conn.cursor()
-        stats = []
-        for code, url in redirects.items():
-            count = cursor.execute("SELECT COUNT(*) FROM logs WHERE short_id = ?", (code,)).fetchone()[0]
-            stats.append((code, url, count))
+        cursor.execute("""
+            SELECT r.short_id, r.destination, COUNT(l.id) as scan_count
+            FROM redirects r
+            LEFT JOIN logs l ON r.short_id = l.short_id
+            GROUP BY r.short_id
+        """)
+        stats = cursor.fetchall()
 
-        cursor.execute("SELECT short_id, timestamp, lat, lon, city, country FROM logs")
-        raw_locations = cursor.fetchall()
+        cursor.execute("""
+            SELECT short_id, timestamp, lat, lon, city, country
+            FROM logs
+            WHERE lat IS NOT NULL AND lat != 0 AND lon IS NOT NULL AND lon != 0
+        """)
+        scan_locations = cursor.fetchall()
 
-    locations = [row for row in raw_locations if row[2] and row[3] and row[2] != 0 and row[3] != 0]
+    locations = [[row[2], row[3]] for row in scan_locations]
+    return render_template('dashboard.html', stats=stats, new_code=new_code, locations=locations)
 
-    return render_template("dashboard.html", stats=stats, new_code=new_code, locations=locations)
-
+# === REDIRECT MANAGEMENT ===
 @app.route('/add', methods=['POST'])
-@login_required
 def add_redirect():
-    short_id = request.form.get('short_id')
-    destination = request.form.get('destination')
+    short_id = request.form.get('short_id').strip()
+    destination = request.form.get('destination').strip()
     if not short_id or not destination:
         return "Missing fields", 400
 
-    redirects = get_redirects_from_sheet()
-    if short_id in redirects:
-        return "Shortcode already exists", 400
+    with sqlite3.connect(DB_FILE) as conn:
+        try:
+            conn.execute("INSERT INTO redirects (short_id, destination) VALUES (?, ?)", (short_id, destination))
+            conn.commit()
+        except sqlite3.IntegrityError:
+            return "Shortcode already exists", 400
 
-    success = append_redirect_to_sheet(short_id, destination)
-    if success:
-        return redirect(f"/dashboard?new={short_id}")
-    else:
-        return "Failed to write to Google Sheet", 500
+    return redirect(f"/dashboard?new={short_id}")
 
+@app.route('/edit', methods=['POST'])
+def edit_redirect():
+    short_id = request.form.get('short_id')
+    new_dest = request.form.get('new_destination')
+    with sqlite3.connect(DB_FILE) as conn:
+        conn.execute("UPDATE redirects SET destination = ? WHERE short_id = ?", (new_dest, short_id))
+        conn.commit()
+    return redirect("/dashboard")
+
+@app.route('/delete/<short_id>', methods=['POST'])
+def delete_redirect(short_id):
+    with sqlite3.connect(DB_FILE) as conn:
+        conn.execute("DELETE FROM logs WHERE short_id = ?", (short_id,))
+        conn.execute("DELETE FROM redirects WHERE short_id = ?", (short_id,))
+        conn.commit()
+    return redirect("/dashboard")
+
+# === QR CODE GEN & VIEW ===
 @app.route('/view-qr/<short_id>')
-@login_required
 def view_qr(short_id):
     try:
         track_url = f"{request.host_url.rstrip('/')}/track?id={short_id}"
@@ -180,13 +182,12 @@ def view_qr(short_id):
         buf = io.BytesIO()
         img.save(buf, format='PNG')
         buf.seek(0)
-        return send_file(buf, mimetype='image/png', as_attachment=False)
+        return send_file(buf, mimetype='image/png')
     except Exception as e:
         print("[QR VIEW ERROR]", e)
-        return "QR preview failed", 500
+        return "QR Error", 500
 
 @app.route('/download-qr/<short_id>')
-@login_required
 def download_qr(short_id):
     try:
         track_url = f"{request.host_url.rstrip('/')}/track?id={short_id}"
@@ -194,26 +195,28 @@ def download_qr(short_id):
         buf = io.BytesIO()
         img.save(buf, format='PNG')
         buf.seek(0)
-        return send_file(buf, mimetype='image/png', as_attachment=True, download_name=f"qr-{short_id}.png")
+        return send_file(buf, mimetype='image/png', as_attachment=True, download_name=f'qr-{short_id}.png')
     except Exception as e:
         print("[QR DOWNLOAD ERROR]", e)
-        return "Download failed", 500
+        return "QR Download Error", 500
 
+# === EXPORT TO CSV ===
 @app.route('/export-csv')
-@login_required
 def export_csv():
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow(['Short Code', 'Timestamp', 'IP', 'City', 'Country', 'User Agent'])
-
     with sqlite3.connect(DB_FILE) as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT short_id, timestamp, ip, city, country, user_agent FROM logs ORDER BY timestamp DESC")
         for row in cursor.fetchall():
             writer.writerow(row)
-
     output.seek(0)
     return send_file(io.BytesIO(output.getvalue().encode()), mimetype='text/csv', as_attachment=True, download_name='qr-scan-logs.csv')
 
-if not os.path.exists(DB_FILE):
-    init_db()
+# === BOOT ===
+if __name__ == '__main__':
+    if not os.path.exists(DB_FILE):
+        init_db()
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
