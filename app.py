@@ -46,7 +46,7 @@ def restore_logs():
                     row["User Agent"]
                 ))
             conn.commit()
-            print("[RESTORE] ✅ Logs restored from sheet")
+        print("[RESTORE] ✅ Logs restored from sheet")
     except Exception as e:
         print("[RESTORE ERROR]", e)
 
@@ -72,12 +72,8 @@ def init_db():
         """)
         conn.execute("INSERT OR IGNORE INTO redirects (short_id, destination) VALUES (?, ?)", ("blondart", "https://www.blondart.co.uk"))
         conn.commit()
-    restore_logs()
 
-@app.before_first_request
-def setup():
-    if not os.path.exists(DB_FILE):
-        init_db()
+    restore_logs()
 
 @app.route('/')
 def home():
@@ -195,6 +191,12 @@ def export_csv():
     output.seek(0)
     return send_file(io.BytesIO(output.getvalue().encode()), mimetype='text/csv', as_attachment=True, download_name='qr-logs.csv')
 
-# === Start ===
+# === Start App ===
 if __name__ == '__main__':
+    if not os.path.exists(DB_FILE):
+        init_db()
+    else:
+        # even if DB exists, make sure logs are synced from Google Sheets on every start
+        restore_logs()
+
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))
