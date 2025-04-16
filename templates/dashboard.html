@@ -112,12 +112,25 @@
     const heatData = {{ locations | tojson }};
     console.log("🔥 Heatmap raw data:", heatData);
 
-    const heatPoints = heatData.map(p => [p[0], p[1], 0.7]);
-    if (heatPoints.length > 0) {
-      L.heatLayer(heatPoints, { radius: 25 }).addTo(map);
-    } else {
-      console.warn("⚠️ No valid scan locations to show on map.");
+    const heatPoints = {{ locations | tojson }};
+console.log("🔥 Heatmap points:", heatPoints);
+
+if (heatPoints.length > 0) {
+  L.heatLayer(heatPoints.map(p => [p[0], p[1], 1]), {
+    radius: 35,
+    blur: 25,
+    maxZoom: 10,
+    gradient: {
+      0.4: 'blue',
+      0.6: 'lime',
+      0.8: 'orange',
+      1.0: 'red'
     }
+  }).addTo(map);
+} else {
+  console.warn("No heat points to show");
+}
+
   </script>
 
 </body>
