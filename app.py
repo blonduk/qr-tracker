@@ -35,7 +35,7 @@ def restore_logs_from_sheet():
         with sqlite3.connect(DB_FILE) as conn:
             for row in rows:
                 conn.execute("""
-                    INSERT INTO logs (short_id, timestamp, ip, city, country, user_agent)
+                    INSERT OR IGNORE INTO logs (short_id, timestamp, ip, city, country, user_agent)
                     VALUES (?, ?, ?, ?, ?, ?)
                 """, (
                     row.get("Short Code"),
@@ -125,7 +125,7 @@ def dashboard():
         """)
         stats = cursor.fetchall()
 
-        cursor.execute("SELECT short_id, city, country FROM logs WHERE city != ''")
+        cursor.execute("SELECT short_id, city, country FROM logs WHERE city IS NOT NULL AND city != ''")
         locations = cursor.fetchall()
 
     return render_template("dashboard.html", stats=stats, locations=locations)
@@ -155,7 +155,7 @@ def add():
     short = request.form['short_id'].strip()
     dest = request.form['destination'].strip()
     with sqlite3.connect(DB_FILE) as conn:
-        conn.execute("INSERT INTO redirects (short_id, destination) VALUES (?, ?)", (short, dest))
+        conn.execute("INSERT OR IGNORE INTO redirects (short_id, destination) VALUES (?, ?)", (short, dest))
         conn.commit()
     return redirect("/dashboard")
 
@@ -195,4 +195,6 @@ def export_csv():
 if __name__ == '__main__':
     if not os.path.exists(DB_FILE):
         init_db()
+    else:
+        print("[INFO] DB already exists — skipping init")
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))
