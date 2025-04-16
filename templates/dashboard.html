@@ -4,27 +4,35 @@
   <meta charset="UTF-8">
   <title>QR Tracker Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
   <style>
     body {
       font-family: sans-serif;
       background-color: #f3f3f3;
       color: #222;
       padding: 2rem;
+      transition: background-color 0.3s, color 0.3s;
     }
-
     table {
       width: 100%;
       border-collapse: collapse;
       margin-bottom: 2rem;
     }
-
     th, td {
       border: 1px solid #ccc;
       padding: 0.6rem;
+      text-align: left;
     }
-
+    form {
+      margin-bottom: 2rem;
+    }
+    input[type="text"] {
+      padding: 0.4rem;
+      margin-right: 1rem;
+      width: 200px;
+    }
+    button {
+      padding: 0.4rem 1rem;
+    }
     .qr-thumb {
       width: 80px;
       height: 80px;
@@ -33,36 +41,23 @@
       background: white;
       padding: 4px;
     }
-
     #map {
       height: 400px;
-      margin-top: 2rem;
+      margin-bottom: 2rem;
     }
-
     .dark-mode {
       background-color: #121212;
       color: #f3f3f3;
     }
-
     .dark-mode table, .dark-mode th, .dark-mode td {
       border-color: #555;
     }
-
-    button {
-      padding: 0.4rem 1rem;
-    }
-
-    .dark-toggle {
-      position: fixed;
-      top: 10px;
-      left: 10px;
-      padding: 0.5rem 1rem;
-    }
   </style>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
 </head>
 <body>
 
-  <button class="dark-toggle" onclick="toggleDarkMode()">🌓</button>
+  <button onclick="toggleDarkMode()" style="position: fixed; top: 10px; left: 10px;">🌓</button>
 
   <h1>QR Tracker Dashboard</h1>
 
@@ -86,28 +81,28 @@
       </tr>
     </thead>
     <tbody>
-      {% for code, dest, count in stats %}
+      {% for short_id, destination, count in stats %}
       <tr>
-        <td>{{ code }}</td>
-        <td>{{ dest }}</td>
+        <td>{{ short_id }}</td>
+        <td>{{ destination }}</td>
         <td>{{ count }}</td>
         <td>
-          <a href="/view-qr/{{ code }}" target="_blank">
-            <img src="/view-qr/{{ code }}" class="qr-thumb">
+          <a href="/view-qr/{{ short_id }}" target="_blank">
+            <img src="/view-qr/{{ short_id }}" class="qr-thumb">
           </a>
         </td>
         <td>
-          <button onclick="copyToClipboard('{{ request.host_url }}track?id={{ code }}')">Copy</button>
+          <button onclick="copyToClipboard('{{ request.host_url }}track?id={{ short_id }}')">Copy</button>
         </td>
         <td>
           <form action="/edit" method="POST" style="display:inline;">
-            <input type="hidden" name="short_id" value="{{ code }}">
+            <input type="hidden" name="short_id" value="{{ short_id }}">
             <input type="text" name="new_destination" placeholder="New URL">
             <button type="submit">Update</button>
           </form>
         </td>
         <td>
-          <form action="/delete/{{ code }}" method="POST" style="display:inline;">
+          <form action="/delete/{{ short_id }}" method="POST" style="display:inline;">
             <button type="submit" onclick="return confirm('Are you sure?')">Delete</button>
           </form>
         </td>
@@ -136,29 +131,19 @@
 
     const map = L.map('map').setView([20, 0], 2);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors'
+      attribution: '&copy; OpenStreetMap contributors',
+      detectRetina: true
     }).addTo(map);
 
-    const raw = {{ locations|tojson }};
-    const heatPoints = raw.map(p => [p[0], p[1], 1]);
-
-    console.log("🔥 Heat points:", heatPoints);
+    const rawLocations = {{ locations | tojson }};
+    const heatPoints = rawLocations.map(loc => [loc[2], loc[3], 0.7]); // lat, lon, intensity
 
     if (heatPoints.length > 0) {
-      L.heatLayer(heatPoints, {
-        radius: 40,
-        blur: 25,
-        gradient: {
-          0.4: 'blue',
-          0.6: 'lime',
-          0.8: 'orange',
-          1.0: 'red'
-        },
-        maxZoom: 10
-      }).addTo(map);
+      L.heatLayer(heatPoints, { radius: 25 }).addTo(map);
     } else {
-      console.warn("No valid points to display.");
+      console.warn("No scan heatmap data.");
     }
   </script>
+
 </body>
 </html>
