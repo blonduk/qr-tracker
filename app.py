@@ -215,8 +215,16 @@ def export_csv():
     return send_file(io.BytesIO(output.getvalue().encode()), mimetype='text/csv', as_attachment=True, download_name='qr-scan-logs.csv')
 
 # === BOOT ===
-if __name__ == '__main__':
+def ensure_db():
     if not os.path.exists(DB_FILE):
+        print("[INIT] Creating new database...")
         init_db()
+    else:
+        print("[INIT] Database exists")
+
+ensure_db()
+
+# For local testing
+if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
