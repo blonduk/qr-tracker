@@ -12,7 +12,6 @@ from oauth2client.service_account import ServiceAccountCredentials
 app = Flask(__name__)
 DB_FILE = 'redirects.db'
 
-# === GOOGLE SHEETS SETUP ===
 def get_sheet():
     scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
     creds_path = '/etc/secrets/google-credentials.json'
@@ -29,7 +28,10 @@ def append_to_sheet(data):
     except Exception as e:
         print("[SHEET ERROR]", e)
 
-# === TEST ROUTE FOR SHEET ===
+@app.route('/')
+def home():
+    return redirect('/dashboard')
+
 @app.route('/test-sheets')
 def test_sheets():
     try:
@@ -38,11 +40,6 @@ def test_sheets():
     except Exception as e:
         return f"❌ Sheets error: {e}"
 
-@app.route('/')
-def home():
-    return redirect('/dashboard')
-
-# === DB INIT ===
 def init_db():
     with sqlite3.connect(DB_FILE) as conn:
         conn.execute('''
@@ -78,6 +75,7 @@ def track():
 
     try:
         geo = requests.get(f"http://ip-api.com/json/{ip}").json()
+        print("[GEO DEBUG]", geo)
         city = geo.get('city', '')
         country = geo.get('country', '')
         lat = geo.get('lat', 0)
@@ -95,7 +93,6 @@ def track():
         conn.commit()
         dest = cursor.execute("SELECT destination FROM redirects WHERE short_id = ?", (short_id,)).fetchone()
 
-    # Write to Google Sheet
     row = [short_id, str(timestamp), ip, city, country, user_agent]
     try:
         append_to_sheet(row)
@@ -121,6 +118,15 @@ def dashboard():
 
         cursor.execute("SELECT lat, lon FROM logs WHERE lat != 0 AND lon != 0")
         locations = cursor.fetchall()
+
+    # TEMP HEATMAP TESTING
+    if not locations:
+        print("[MAP] No scan locations found, injecting test pins")
+        locations = [
+            (51.5074, -0.1278),  # London
+            (40.7128, -74.0060), # New York
+            (35.6895, 139.6917)  # Tokyo
+        ]
 
     return render_template('dashboard.html', stats=stats, locations=locations)
 
@@ -194,7 +200,7 @@ def export_csv():
     output.seek(0)
     return send_file(io.BytesIO(output.getvalue().encode()), mimetype='text/csv', as_attachment=True, download_name='qr-scan-logs.csv')
 
-# === INITIALISE DB ON FIRST RUN ===
+# === INIT ON START ===
 if not os.path.exists(DB_FILE):
     init_db()
 
