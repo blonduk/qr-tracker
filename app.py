@@ -26,22 +26,31 @@ def get_redirects_from_sheet():
         sheet = get_gsheet("QR Redirects")
         rows = sheet.get_all_records()
         redirects = {row["Short Code"].strip(): row["Destination"].strip() for row in rows if row["Short Code"] and row["Destination"]}
-        print(f"[SHEETS] Loaded {len(redirects)} redirects from QR Redirects")
+        print(f"[SHEETS] ✅ Loaded {len(redirects)} redirects")
         return redirects
     except Exception as e:
         print("[SHEETS ERROR] Failed to load redirects:", e)
         return {}
 
+def append_redirect_to_sheet(short_id, destination):
+    try:
+        sheet = get_gsheet("QR Redirects")
+        sheet.append_row([short_id.strip(), destination.strip()])
+        print(f"[SHEETS] ✅ Added redirect {short_id} -> {destination}")
+        return True
+    except Exception as e:
+        print("[SHEETS ERROR] Failed to add redirect:", e)
+        return False
+
 def append_to_scan_sheet(data):
     try:
-        print(f"[SHEETS] Logging scan to archive: {data}")
         sheet = get_gsheet("QR Scan Archive")
         sheet.append_row(data)
-        print("[SHEETS] ✅ Row appended to QR Scan Archive")
+        print("[SHEETS] ✅ Scan logged")
     except Exception as e:
-        print("[SHEETS ERROR] Scan archive write failed:", e)
+        print("[SHEETS ERROR] Scan log failed:", e)
 
-# === DB Setup ===
+# === Local DB for logs only ===
 def init_db():
     with sqlite3.connect(DB_FILE) as conn:
         conn.execute('''
@@ -113,14 +122,27 @@ def dashboard():
         cursor.execute("SELECT short_id, timestamp, lat, lon, city, country FROM logs")
         raw_locations = cursor.fetchall()
 
-    # Filter bad coordinates
     locations = [row for row in raw_locations if row[2] and row[3] and row[2] != 0 and row[3] != 0]
 
     return render_template("dashboard.html", stats=stats, new_code=new_code, locations=locations)
 
 @app.route('/add', methods=['POST'])
 def add_redirect():
-    return "⛔ This version uses Google Sheets for redirects. Add new codes in the 'QR Redirects' sheet manually."
+    short_id = request.form.get('short_id')
+    destination = request.form.get('destination')
+    if not short_id or not destination:
+        return "Missing fields", 400
+
+    # Check for duplicate
+    redirects = get_redirects_from_sheet()
+    if short_id in redirects:
+        return "Shortcode already exists", 400
+
+    success = append_redirect_to_sheet(short_id, destination)
+    if success:
+        return redirect(f"/dashboard?new={short_id}")
+    else:
+        return "Failed to write to Google Sheet", 500
 
 @app.route('/view-qr/<short_id>')
 def view_qr(short_id):
