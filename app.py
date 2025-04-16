@@ -4,7 +4,6 @@ import sqlite3
 import os
 import qrcode
 import io
-import csv
 import requests
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
@@ -18,8 +17,7 @@ def get_sheet():
     creds_path = '/etc/secrets/google-credentials.json'
     creds = ServiceAccountCredentials.from_json_keyfile_name(creds_path, scope)
     client = gspread.authorize(creds)
-    sheet = client.open("QR Scan Archive").sheet1
-    return sheet
+    return client.open("QR Scan Archive").sheet1
 
 def append_to_sheet(data):
     try:
@@ -30,21 +28,8 @@ def append_to_sheet(data):
     except Exception as e:
         print("[SHEET ERROR]", e)
 
-@app.route('/test-sheets')
-def test_sheets():
-    try:
-        append_to_sheet(["test", str(datetime.utcnow()), "ip", "city", "country", "agent"])
-        return "✅ Google Sheets write succeeded!"
-    except Exception as e:
-        return f"❌ Sheets error: {e}"
-
-@app.route('/')
-def home():
-    return redirect('/dashboard')
-
-# === DB INIT ===
+# === DATABASE INIT ===
 def init_db():
-    print("[INIT] Initializing database...")
     with sqlite3.connect(DB_FILE) as conn:
         conn.execute('''
             CREATE TABLE IF NOT EXISTS logs (
@@ -65,18 +50,20 @@ def init_db():
                 destination TEXT
             )
         ''')
-        conn.execute("INSERT OR IGNORE INTO redirects (short_id, destination) VALUES (?, ?)",
-                     ("blondart", "https://www.blondart.co.uk"))
-    print("[INIT] Database initialized.")
+        conn.execute("INSERT OR IGNORE INTO redirects (short_id, destination) VALUES (?, ?)", ("blondart", "https://www.blondart.co.uk"))
 
-# === TRACK ===
+# === MAIN ROUTES ===
+@app.route('/')
+def home():
+    return redirect('/dashboard')
+
 @app.route('/track')
 def track():
     short_id = request.args.get('id')
     if not short_id:
         return "Missing tracking ID", 400
 
-    user_agent = request.headers.get('User-Agent', '')[:250]
+    user_agent = request.headers.get('User-Agent', '').replace('\n', ' ').replace('\r', ' ')[:250]
     ip = request.remote_addr
     timestamp = datetime.utcnow()
 
@@ -87,12 +74,10 @@ def track():
         country = geo.get('country', '')
         lat = geo.get('lat', 0)
         lon = geo.get('lon', 0)
-    except Exception as geo_err:
-        print("[GEO ERROR]", geo_err)
+    except Exception as e:
+        print("[GEO ERROR]", e)
         city, country = '', ''
         lat, lon = 0, 0
-
-    print(f"[TRACK] Logging scan: {short_id}, IP: {ip}, {city}, {country}")
 
     with sqlite3.connect(DB_FILE) as conn:
         cursor = conn.cursor()
@@ -103,9 +88,9 @@ def track():
         conn.commit()
         dest = cursor.execute("SELECT destination FROM redirects WHERE short_id = ?", (short_id,)).fetchone()
 
+    sheet_row = [short_id, str(timestamp), ip, city, country, user_agent]
     try:
-        append_to_sheet([short_id, str(timestamp), ip, city, country, user_agent])
-        print("[TRACK] ✅ Sheet write successful")
+        append_to_sheet(sheet_row)
     except Exception as sheet_error:
         print("[TRACK] ❌ Sheet write FAILED:", sheet_error)
 
@@ -114,86 +99,28 @@ def track():
     else:
         return "Invalid tracking code", 404
 
-# === DASHBOARD ===
 @app.route('/dashboard')
 def dashboard():
-    try:
-        with sqlite3.connect(DB_FILE) as conn:
-            cursor = conn.cursor()
-            cursor.execute("""
-                SELECT r.short_id, r.destination, COUNT(l.id) as scan_count
-                FROM redirects r
-                LEFT JOIN logs l ON r.short_id = l.short_id
-                GROUP BY r.short_id
-            """)
-            stats = cursor.fetchall()
-
-            cursor.execute("SELECT short_id, timestamp, lat, lon, city, country FROM logs WHERE lat != 0 AND lon != 0")
-            raw_locations = cursor.fetchall()
-
-        safe_locations = []
-        for row in raw_locations:
-            try:
-                lat = float(row[2])
-                lon = float(row[3])
-                if lat and lon:
-                    safe_locations.append(row)
-            except Exception as parse_err:
-                print("[MAP] Skipping invalid location:", parse_err)
-
-        print(f"[DASHBOARD] Loaded {len(stats)} redirect(s), {len(safe_locations)} location(s)")
-        return render_template("dashboard.html", stats=stats, locations=safe_locations)
-
-    except Exception as dash_err:
-        print("[DASHBOARD ERROR]", dash_err)
-        return "Something went wrong on the dashboard", 500
-
-# === QR ===
-@app.route('/view-qr/<short_id>')
-def view_qr(short_id):
-    try:
-        track_url = f"{request.host_url.rstrip('/')}/track?id={short_id}"
-        img = qrcode.make(track_url)
-        buf = io.BytesIO()
-        img.save(buf, format='PNG')
-        buf.seek(0)
-        return send_file(buf, mimetype='image/png')
-    except Exception as err:
-        print("[QR VIEW ERROR]", err)
-        return "QR view error", 500
-
-@app.route('/download-qr/<short_id>')
-def download_qr(short_id):
-    try:
-        track_url = f"{request.host_url.rstrip('/')}/track?id={short_id}"
-        img = qrcode.make(track_url)
-        buf = io.BytesIO()
-        img.save(buf, format='PNG')
-        buf.seek(0)
-        return send_file(buf, mimetype='image/png', as_attachment=True, download_name=f'qr-{short_id}.png')
-    except Exception as err:
-        print("[QR DOWNLOAD ERROR]", err)
-        return "QR download error", 500
-
-# === EXPORT ===
-@app.route('/export-csv')
-def export_csv():
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(['Short Code', 'Timestamp', 'IP', 'City', 'Country', 'User Agent'])
     with sqlite3.connect(DB_FILE) as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT short_id, timestamp, ip, city, country, user_agent FROM logs ORDER BY timestamp DESC")
-        for row in cursor.fetchall():
-            writer.writerow(row)
-    output.seek(0)
-    return send_file(io.BytesIO(output.getvalue().encode()), mimetype='text/csv', as_attachment=True, download_name='qr-scan-logs.csv')
+        cursor.execute("""
+            SELECT r.short_id, r.destination, COUNT(l.id)
+            FROM redirects r
+            LEFT JOIN logs l ON r.short_id = l.short_id
+            GROUP BY r.short_id
+        """)
+        stats = cursor.fetchall()
 
-# === REDIRECTS ===
+        cursor.execute("SELECT short_id, timestamp, lat, lon, city, country FROM logs WHERE lat != 0 AND lon != 0")
+        locations = cursor.fetchall()
+
+    return render_template("dashboard.html", stats=stats, locations=locations)
+
 @app.route('/add', methods=['POST'])
 def add_redirect():
     short_id = request.form.get('short_id').strip()
     destination = request.form.get('destination').strip()
+
     if not short_id or not destination:
         return "Missing fields", 400
 
@@ -223,7 +150,35 @@ def delete_redirect(short_id):
         conn.commit()
     return redirect("/dashboard")
 
-# === START ===
+@app.route('/view-qr/<short_id>')
+def view_qr(short_id):
+    try:
+        from PIL import Image
+    except ImportError:
+        return "[QR VIEW ERROR] Missing Pillow", 500
+
+    url = f"{request.host_url.rstrip('/')}/track?id={short_id}"
+    img = qrcode.make(url)
+    buf = io.BytesIO()
+    img.save(buf, format='PNG')
+    buf.seek(0)
+    return send_file(buf, mimetype='image/png')
+
+@app.route('/export-csv')
+def export_csv():
+    import csv
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['Short Code', 'Timestamp', 'IP', 'City', 'Country', 'User Agent'])
+    with sqlite3.connect(DB_FILE) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT short_id, timestamp, ip, city, country, user_agent FROM logs ORDER BY timestamp DESC")
+        for row in cursor.fetchall():
+            writer.writerow(row)
+    output.seek(0)
+    return send_file(io.BytesIO(output.getvalue().encode()), mimetype='text/csv', as_attachment=True, download_name='qr-scan-logs.csv')
+
+# === STARTUP ===
 if __name__ == '__main__':
     if not os.path.exists(DB_FILE):
         init_db()
