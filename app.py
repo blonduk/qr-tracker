@@ -1,10 +1,9 @@
-from flask import Flask, request, redirect, render_template, send_file
+from flask import Flask, redirect, request, render_template, send_file
 import qrcode
 import io
-import csv
+from datetime import datetime
 import requests
 import gspread
-from datetime import datetime
 from oauth2client.service_account import ServiceAccountCredentials
 
 app = Flask(__name__)
@@ -12,32 +11,37 @@ app = Flask(__name__)
 # === Google Sheets Setup ===
 def get_sheet(sheet_name):
     scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-    creds = ServiceAccountCredentials.from_json_keyfile_name('path_to_your_credentials.json', scope)
+    creds = ServiceAccountCredentials.from_json_keyfile_name('/etc/secrets/google-credentials.json', scope)
     client = gspread.authorize(creds)
     return client.open(sheet_name).sheet1
 
-# === Helper Functions ===
-def get_client_ip():
-    if request.headers.get('X-Forwarded-For'):
-        return request.headers['X-Forwarded-For'].split(',')[0].strip()
-    return request.remote_addr
+def get_redirects():
+    sheet = get_sheet("QR Redirects")
+    return sheet.get_all_records()
 
-def geolocate_ip(ip):
-    try:
-        response = requests.get(f"http://ip-api.com/json/{ip}")
-        data = response.json()
-        if data['status'] == 'success':
-            return {
-                'city': data.get('city', ''),
-                'country': data.get('country', ''),
-                'lat': data.get('lat', ''),
-                'lon': data.get('lon', '')
-            }
-    except Exception as e:
-        print(f"[GEO ERROR] {e}")
-    return {'city': '', 'country': '', 'lat': '', 'lon': ''}
+def get_logs():
+    sheet = get_sheet("QR Scan Archive")
+    return sheet.get_all_records()
 
-# === Routes ===
+def add_redirect(short, dest):
+    sheet = get_sheet("QR Redirects")
+    sheet.append_row([short, dest])
+
+def update_redirect(short, new_url):
+    sheet = get_sheet("QR Redirects")
+    cell = sheet.find(short)
+    sheet.update_cell(cell.row, 2, new_url)
+
+def delete_redirect(short):
+    sheet = get_sheet("QR Redirects")
+    cell = sheet.find(short)
+    sheet.delete_rows(cell.row)
+
+def append_log(data):
+    sheet = get_sheet("QR Scan Archive")
+    sheet.append_row(data)
+
+# === ROUTES ===
 @app.route('/')
 def home():
     return redirect('/dashboard')
@@ -46,66 +50,58 @@ def home():
 def track():
     short_id = request.args.get('id')
     if not short_id:
-        return "Missing short ID", 400
+        return "Missing ID", 400
 
-    ip = get_client_ip()
+    ip = request.headers.get('X-Forwarded-For', request.remote_addr)
     ua = request.headers.get('User-Agent', '')[:250]
     timestamp = datetime.utcnow().isoformat()
 
-    geo = geolocate_ip(ip)
-
-    row = [short_id, timestamp, ip, geo['city'], geo['country'], geo['lat'], geo['lon'], ua]
-    print("[SCAN] →", row)
-
     try:
-        sheet = get_sheet("QR Scan Archive")
-        sheet.append_row(row)
-        print("[SHEET] ✅ Row appended")
-    except Exception as e:
-        print("[SHEET ERROR]", e)
+        geo = requests.get(f"http://ip-api.com/json/{ip}").json()
+        city = geo.get("city", "")
+        country = geo.get("country", "")
+    except:
+        city = ""
+        country = ""
 
-    try:
-        redirects = get_sheet("QR Redirects").get_all_records()
-        match = next((r for r in redirects if r["Short Code"] == short_id), None)
-        if match:
-            return redirect(match["Destination"])
-    except Exception as e:
-        print("[REDIRECT ERROR]", e)
+    append_log([short_id, timestamp, ip, city, country, ua])
 
-    return "Invalid or missing redirect", 404
+    redirects = get_redirects()
+    for row in redirects:
+        if row['short_id'] == short_id:
+            return redirect(row['destination'])
+
+    return "Invalid short code", 404
 
 @app.route('/dashboard')
 def dashboard():
-    try:
-        redirect_sheet = get_sheet("QR Redirects")
-        log_sheet = get_sheet("QR Scan Archive")
+    redirects = get_redirects()
+    logs = get_logs()
 
-        redirects = redirect_sheet.get_all_records()
-        logs = log_sheet.get_all_records()
+    scan_counts = {}
+    for log in logs:
+        sid = log.get('Short Code')
+        if sid:
+            scan_counts[sid] = scan_counts.get(sid, 0) + 1
 
-        stats = []
-        for redirect in redirects:
-            short_id = redirect["Short Code"]
-            destination = redirect["Destination"]
-            count = sum(1 for log in logs if log.get("Short Code") == short_id)
-            stats.append((short_id, destination, count))
+    stats = []
+    for row in redirects:
+        sid = row['short_id']
+        dest = row['destination']
+        count = scan_counts.get(sid, 0)
+        stats.append((sid, dest, count))
 
-        heatmap_locations = []
-        for log in logs:
-            try:
-                lat = float(log["Latitude"])
-                lon = float(log["Longitude"])
-                if lat and lon:
-                    heatmap_locations.append([lat, lon, 0.9])
-            except:
-                continue
+    heatmap = []
+    for log in logs:
+        try:
+            lat = float(log.get('lat', 0))
+            lon = float(log.get('lon', 0))
+            if lat and lon:
+                heatmap.append([lat, lon, 0.8])
+        except:
+            continue
 
-        print(f"[MAP] Loaded {len(heatmap_locations)} heatmap points")
-        return render_template("dashboard.html", stats=stats, locations=heatmap_locations)
-
-    except Exception as e:
-        print("[DASHBOARD ERROR]", e)
-        return "Dashboard failed to load.", 500
+    return render_template("dashboard.html", stats=stats, locations=heatmap)
 
 @app.route('/view-qr/<short_id>')
 def view_qr(short_id):
@@ -116,27 +112,21 @@ def view_qr(short_id):
     buf.seek(0)
     return send_file(buf, mimetype='image/png')
 
-@app.route('/download-qr/<short_id>')
-def download_qr(short_id):
-    url = f"{request.host_url}track?id={short_id}"
-    img = qrcode.make(url)
-    buf = io.BytesIO()
-    img.save(buf)
-    buf.seek(0)
-    return send_file(buf, mimetype='image/png', as_attachment=True, download_name=f"{short_id}-qr.png")
+@app.route('/add', methods=['POST'])
+def add():
+    short = request.form['short_id'].strip()
+    dest = request.form['destination'].strip()
+    add_redirect(short, dest)
+    return redirect('/dashboard')
 
-@app.route('/export-csv')
-def export_csv():
-    try:
-        rows = get_sheet("QR Scan Archive").get_all_values()
-        output = io.StringIO()
-        writer = csv.writer(output)
-        writer.writerows(rows)
-        output.seek(0)
-        return send_file(io.BytesIO(output.getvalue().encode()), mimetype='text/csv', as_attachment=True, download_name='qr-scan-logs.csv')
-    except Exception as e:
-        print("[EXPORT ERROR]", e)
-        return "Export failed", 500
+@app.route('/edit', methods=['POST'])
+def edit():
+    short = request.form['short_id'].strip()
+    new_url = request.form['new_destination'].strip()
+    update_redirect(short, new_url)
+    return redirect('/dashboard')
 
-if __name__ == '__main__':
-    app.run(debug=True)
+@app.route('/delete/<short_id>', methods=['POST'])
+def delete(short_id):
+    delete_redirect(short_id)
+    return redirect('/dashboard')
