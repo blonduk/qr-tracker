@@ -52,6 +52,7 @@ def restore_logs():
 
 # === DB INIT ===
 def init_db():
+    new_db = not os.path.exists(DB_FILE)
     with sqlite3.connect(DB_FILE) as conn:
         conn.execute("""
             CREATE TABLE IF NOT EXISTS logs (
@@ -70,12 +71,11 @@ def init_db():
                 destination TEXT
             )
         """)
-        conn.execute("""
-            INSERT OR IGNORE INTO redirects (short_id, destination)
-            VALUES (?, ?)
-        """, ("blondart", "https://www.blondart.co.uk"))
         conn.commit()
-    restore_logs()
+
+    if new_db:
+        print("[INIT] 🧱 New DB created")
+        restore_logs()
 
 # === ROUTES ===
 
@@ -190,8 +190,9 @@ def export_csv():
     output.seek(0)
     return send_file(io.BytesIO(output.getvalue().encode()), mimetype='text/csv', as_attachment=True, download_name='qr-scans.csv')
 
+# === SAFE INIT AT APP STARTUP ===
+init_db()
+
 # === RUN ===
 if __name__ == '__main__':
-    if not os.path.exists(DB_FILE):
-        init_db()
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))
