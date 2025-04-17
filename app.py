@@ -1,37 +1,57 @@
 from flask import Flask, redirect, request, render_template, send_file
-from datetime import datetime
 import io
-import csv
 import qrcode
 import requests
+from datetime import datetime, timedelta
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
 app = Flask(__name__)
 
-# === GOOGLE SHEETS ===
-def get_sheet(sheet_name):
-    scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-    creds = ServiceAccountCredentials.from_json_keyfile_name('/etc/secrets/google-credentials.json', scope)
-    client = gspread.authorize(creds)
-    return client.open(sheet_name).sheet1
+# === Google Sheets Setup ===
+SCOPE = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+CREDS_PATH = '/etc/secrets/google-credentials.json'
+ARCHIVE_SHEET_NAME = 'QR Scan Archive'
+REDIRECTS_SHEET_NAME = 'QR Redirects'
+
+def get_gspread_client():
+    creds = ServiceAccountCredentials.from_json_keyfile_name(CREDS_PATH, SCOPE)
+    return gspread.authorize(creds)
+
+# === Caching Layer ===
+cache = {
+    'redirects': {'data': [], 'timestamp': datetime.min},
+    'logs': {'data': [], 'timestamp': datetime.min}
+}
+CACHE_DURATION = timedelta(seconds=30)
 
 def load_redirects():
-    sheet = get_sheet("QR Redirects")
-    data = sheet.get_all_records()
-    return {row['Short Code']: row['Destination'] for row in data if row['Short Code'] and row['Destination']}
-
-def log_scan(short_id, ip, city, country, ua):
-    sheet = get_sheet("QR Scan Archive")
-    timestamp = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
-    row = [short_id, timestamp, ip, city, country, ua]
+    if datetime.utcnow() - cache['redirects']['timestamp'] < CACHE_DURATION:
+        return cache['redirects']['data']
     try:
-        sheet.append_row(row)
-        print("[SCAN LOGGED ✅]", row)
+        client = get_gspread_client()
+        sheet = client.open(REDIRECTS_SHEET_NAME).sheet1
+        records = sheet.get_all_records()
+        cache['redirects'] = {'data': records, 'timestamp': datetime.utcnow()}
+        return records
     except Exception as e:
-        print("[❌ LOG ERROR]", e)
+        print("[REDIRECTS CACHE ERROR]", e)
+        return cache['redirects']['data']
 
-# === ROUTES ===
+def load_logs():
+    if datetime.utcnow() - cache['logs']['timestamp'] < CACHE_DURATION:
+        return cache['logs']['data']
+    try:
+        client = get_gspread_client()
+        sheet = client.open(ARCHIVE_SHEET_NAME).sheet1
+        records = sheet.get_all_records()
+        cache['logs'] = {'data': records, 'timestamp': datetime.utcnow()}
+        return records
+    except Exception as e:
+        print("[LOGS CACHE ERROR]", e)
+        return cache['logs']['data']
+
+# === Routes ===
 @app.route('/')
 def home():
     return redirect('/dashboard')
@@ -40,64 +60,69 @@ def home():
 def track():
     short_id = request.args.get('id')
     if not short_id:
-        return "Missing QR ID", 400
-
-    redirects = load_redirects()
-    destination = redirects.get(short_id)
-    if not destination:
-        return "Invalid QR code", 404
+        return "Missing ID", 400
 
     ip = request.headers.get('X-Forwarded-For', request.remote_addr)
     ua = request.headers.get('User-Agent', '')[:250]
+    timestamp = datetime.utcnow().isoformat()
 
     try:
         geo = requests.get(f"http://ip-api.com/json/{ip}").json()
-        city = geo.get("city", "")
-        country = geo.get("country", "")
+        if geo.get('status') == 'success':
+            city = geo.get("city", "")
+            country = geo.get("country", "")
+        else:
+            city = ""
+            country = ""
     except:
         city = ""
         country = ""
 
-    log_scan(short_id, ip, city, country, ua)
-    return redirect(destination)
+    # Save to Google Sheets
+    try:
+        client = get_gspread_client()
+        sheet = client.open(ARCHIVE_SHEET_NAME).sheet1
+        sheet.append_row([short_id, timestamp, ip, city, country, ua])
+        cache['logs']['timestamp'] = datetime.min  # force refresh on next dashboard view
+    except Exception as e:
+        print("[APPEND ERROR]", e)
+
+    # Redirect
+    redirects = load_redirects()
+    match = next((r for r in redirects if r.get('short_id') == short_id), None)
+    if match:
+        return redirect(match.get('destination', '/'))
+    return "Invalid short code", 404
 
 @app.route('/dashboard')
 def dashboard():
     redirects = load_redirects()
-    logs = get_sheet("QR Scan Archive").get_all_records()
+    logs = load_logs()
 
-    stats = {}
-    for short_id in redirects:
-        stats[short_id] = {
-            'destination': redirects[short_id],
-            'scans': 0
-        }
+    stats = []
+    for r in redirects:
+        sid = r.get('short_id', '')
+        dest = r.get('destination', '')
+        scan_count = sum(1 for l in logs if l.get('Short Code') == sid)
+        stats.append((sid, dest, scan_count))
 
+    # Prepare heatmap points
     locations = []
     for log in logs:
-        sid = log.get('Short Code')
-        if sid in stats:
-            stats[sid]['scans'] += 1
-        city = log.get('City', '')
-        country = log.get('Country', '')
-        if city and country:
-            try:
-                geo = requests.get(f"https://nominatim.openstreetmap.org/search", params={
-                    'city': city,
-                    'country': country,
-                    'format': 'json',
-                    'limit': 1
-                }, headers={'User-Agent': 'qr-tracker'}).json()
-                if geo:
-                    lat = float(geo[0]['lat'])
-                    lon = float(geo[0]['lon'])
-                    locations.append([sid, city, country, lat, lon])
-            except:
-                continue
+        try:
+            if log['City'] and log['Country']:
+                city = log['City']
+                country = log['Country']
+                geo = requests.get(f"http://ip-api.com/json/{log['IP']}").json()
+                if geo.get("status") == "success":
+                    lat = geo.get("lat")
+                    lon = geo.get("lon")
+                    if lat and lon:
+                        locations.append([log['Short Code'], city, lat, lon])
+        except Exception as e:
+            print("[GEO FAIL]", e)
 
-    rows = [(sid, stats[sid]['destination'], stats[sid]['scans']) for sid in stats]
-
-    return render_template("dashboard.html", stats=rows, locations=locations)
+    return render_template("dashboard.html", stats=stats, locations=locations)
 
 @app.route('/view-qr/<short_id>')
 def view_qr(short_id):
@@ -110,13 +135,20 @@ def view_qr(short_id):
 
 @app.route('/export-csv')
 def export_csv():
-    sheet = get_sheet("QR Scan Archive")
-    logs = sheet.get_all_values()
+    logs = load_logs()
     output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerows(logs)
+    output.write("Short Code,Timestamp,IP,City,Country,User Agent\n")
+    for row in logs:
+        output.write(','.join([
+            row.get("Short Code", ""),
+            row.get("Timestamp", ""),
+            row.get("IP", ""),
+            row.get("City", ""),
+            row.get("Country", ""),
+            row.get("User Agent", "").replace(",", " ")
+        ]) + "\n")
     output.seek(0)
-    return send_file(io.BytesIO(output.getvalue().encode()), mimetype='text/csv', as_attachment=True, download_name='qr-logs.csv')
+    return send_file(io.BytesIO(output.getvalue().encode()), mimetype='text/csv', as_attachment=True, download_name="qr-logs.csv")
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    app.run(debug=True)
