@@ -52,14 +52,13 @@
       height: 400px;
       margin-bottom: 2rem;
     }
-    #darkToggle {
-      margin-bottom: 1rem;
-    }
   </style>
 </head>
 <body>
 
-  <button id="darkToggle" onclick="toggleDarkMode()">🌓 Dark Mode</button>
+  <div style="margin-bottom: 1rem;">
+    <button onclick="toggleDarkMode()">🌓 Toggle Dark Mode</button>
+  </div>
 
   <h1>QR Tracker Dashboard</h1>
 
@@ -130,19 +129,19 @@
     }
 
     const map = L.map('map').setView([20, 0], 2);
-    L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors'
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
+      subdomains: 'abcd',
+      maxZoom: 19
     }).addTo(map);
 
     const raw = {{ locations|tojson }};
-    const heatPoints = raw
-      .filter(loc => loc[1] && loc[2])
-      .map(loc => [loc[1], loc[2], 0.9]);
-
+    const heatPoints = raw.map(loc => [loc[1], loc[2], 0.9]);
     if (heatPoints.length > 0) {
       L.heatLayer(heatPoints, { radius: 25, blur: 15 }).addTo(map);
     } else {
-      console.warn("No heatmap data available.");
+      console.warn("No valid scan locations to show on map.");
     }
   </script>
 
