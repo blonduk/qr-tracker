@@ -12,7 +12,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 app = Flask(__name__)
 DB_FILE = 'redirects.db'
 
-# === GOOGLE SHEETS SETUP ===
+# === GOOGLE SHEETS HELPERS ===
 def get_sheet(name):
     scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
     creds_path = '/etc/secrets/google-credentials.json'
@@ -24,56 +24,61 @@ def append_to_archive(data):
     try:
         sheet = get_sheet("QR Scan Archive")
         sheet.append_row(data)
-        print("[SHEET] ✅ Row added to archive")
+        print("[SHEET] ✅ Logged to Google Sheet")
     except Exception as e:
         print("[SHEET ERROR]", e)
 
-def restore_logs_from_sheet():
+def restore_logs():
     try:
         sheet = get_sheet("QR Scan Archive")
-        rows = sheet.get_all_records(expected_headers=["Short Code", "Timestamp", "IP", "City", "Country", "User Agent"])
+        rows = sheet.get_all_records()
         with sqlite3.connect(DB_FILE) as conn:
             for row in rows:
                 conn.execute("""
                     INSERT INTO logs (short_id, timestamp, ip, city, country, user_agent)
                     VALUES (?, ?, ?, ?, ?, ?)
                 """, (
-                    row.get("Short Code"),
-                    row.get("Timestamp"),
-                    row.get("IP"),
-                    row.get("City"),
-                    row.get("Country"),
-                    row.get("User Agent")
+                    row.get("Short Code", ""),
+                    row.get("Timestamp", ""),
+                    row.get("IP", ""),
+                    row.get("City", ""),
+                    row.get("Country", ""),
+                    row.get("User Agent", "")
                 ))
             conn.commit()
-        print("[RESTORE] ✅ Logs restored from Google Sheets")
+        print("[RESTORE] ✅ Logs restored from sheet")
     except Exception as e:
         print("[RESTORE ERROR]", e)
 
-# === DATABASE SETUP ===
+# === DB INIT ===
 def init_db():
     with sqlite3.connect(DB_FILE) as conn:
-        conn.execute('''
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS logs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 short_id TEXT,
-                timestamp DATETIME,
+                timestamp TEXT,
                 ip TEXT,
                 city TEXT,
                 country TEXT,
                 user_agent TEXT
             )
-        ''')
-        conn.execute('''
+        """)
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS redirects (
                 short_id TEXT PRIMARY KEY,
                 destination TEXT
             )
-        ''')
-        conn.execute("INSERT OR IGNORE INTO redirects (short_id, destination) VALUES (?, ?)", ("blondart", "https://www.blondart.co.uk"))
-    restore_logs_from_sheet()
+        """)
+        conn.execute("""
+            INSERT OR IGNORE INTO redirects (short_id, destination)
+            VALUES (?, ?)
+        """, ("blondart", "https://www.blondart.co.uk"))
+        conn.commit()
+    restore_logs()
 
 # === ROUTES ===
+
 @app.route('/')
 def home():
     return redirect('/dashboard')
@@ -82,10 +87,10 @@ def home():
 def track():
     short_id = request.args.get('id')
     if not short_id:
-        return "Missing ID", 400
+        return "Missing tracking ID", 400
 
     ip = request.remote_addr
-    ua = request.headers.get('User-Agent', '')[:250]
+    user_agent = request.headers.get('User-Agent', '')[:250]
     timestamp = datetime.utcnow()
 
     try:
@@ -93,24 +98,22 @@ def track():
         city = geo.get("city", "")
         country = geo.get("country", "")
     except:
-        city = ""
-        country = ""
+        city, country = "", ""
 
     with sqlite3.connect(DB_FILE) as conn:
         cursor = conn.cursor()
         cursor.execute("""
             INSERT INTO logs (short_id, timestamp, ip, city, country, user_agent)
             VALUES (?, ?, ?, ?, ?, ?)
-        """, (short_id, timestamp, ip, city, country, ua))
+        """, (short_id, str(timestamp), ip, city, country, user_agent))
         conn.commit()
         dest = cursor.execute("SELECT destination FROM redirects WHERE short_id = ?", (short_id,)).fetchone()
 
-    append_to_archive([short_id, str(timestamp), ip, city, country, ua])
+    append_to_archive([short_id, str(timestamp), ip, city, country, user_agent])
 
     if dest:
         return redirect(dest[0])
-    else:
-        return "Invalid code", 404
+    return "Invalid tracking code", 404
 
 @app.route('/dashboard')
 def dashboard():
@@ -128,6 +131,32 @@ def dashboard():
         locations = cursor.fetchall()
 
     return render_template("dashboard.html", stats=stats, locations=locations)
+
+@app.route('/add', methods=['POST'])
+def add():
+    short = request.form['short_id'].strip()
+    dest = request.form['destination'].strip()
+    with sqlite3.connect(DB_FILE) as conn:
+        conn.execute("INSERT OR IGNORE INTO redirects (short_id, destination) VALUES (?, ?)", (short, dest))
+        conn.commit()
+    return redirect('/dashboard')
+
+@app.route('/edit', methods=['POST'])
+def edit():
+    short = request.form['short_id']
+    new_url = request.form['new_destination']
+    with sqlite3.connect(DB_FILE) as conn:
+        conn.execute("UPDATE redirects SET destination = ? WHERE short_id = ?", (new_url, short))
+        conn.commit()
+    return redirect('/dashboard')
+
+@app.route('/delete/<short_id>', methods=['POST'])
+def delete(short_id):
+    with sqlite3.connect(DB_FILE) as conn:
+        conn.execute("DELETE FROM redirects WHERE short_id = ?", (short_id,))
+        conn.execute("DELETE FROM logs WHERE short_id = ?", (short_id,))
+        conn.commit()
+    return redirect('/dashboard')
 
 @app.route('/view-qr/<short_id>')
 def view_qr(short_id):
@@ -147,32 +176,6 @@ def download_qr(short_id):
     buf.seek(0)
     return send_file(buf, mimetype='image/png', as_attachment=True, download_name=f"{short_id}-qr.png")
 
-@app.route('/add', methods=['POST'])
-def add():
-    short = request.form['short_id'].strip()
-    dest = request.form['destination'].strip()
-    with sqlite3.connect(DB_FILE) as conn:
-        conn.execute("INSERT INTO redirects (short_id, destination) VALUES (?, ?)", (short, dest))
-        conn.commit()
-    return redirect("/dashboard")
-
-@app.route('/edit', methods=['POST'])
-def edit():
-    short = request.form['short_id']
-    new_url = request.form['new_destination']
-    with sqlite3.connect(DB_FILE) as conn:
-        conn.execute("UPDATE redirects SET destination = ? WHERE short_id = ?", (new_url, short))
-        conn.commit()
-    return redirect("/dashboard")
-
-@app.route('/delete/<short_id>', methods=['POST'])
-def delete(short_id):
-    with sqlite3.connect(DB_FILE) as conn:
-        conn.execute("DELETE FROM redirects WHERE short_id = ?", (short_id,))
-        conn.execute("DELETE FROM logs WHERE short_id = ?", (short_id,))
-        conn.commit()
-    return redirect("/dashboard")
-
 @app.route('/export-csv')
 def export_csv():
     with sqlite3.connect(DB_FILE) as conn:
@@ -185,9 +188,9 @@ def export_csv():
     writer.writerow(['Short Code', 'Timestamp', 'IP', 'City', 'Country', 'User Agent'])
     writer.writerows(rows)
     output.seek(0)
-    return send_file(io.BytesIO(output.getvalue().encode()), mimetype='text/csv', as_attachment=True, download_name='qr-logs.csv')
+    return send_file(io.BytesIO(output.getvalue().encode()), mimetype='text/csv', as_attachment=True, download_name='qr-scans.csv')
 
-# === STARTUP ===
+# === RUN ===
 if __name__ == '__main__':
     if not os.path.exists(DB_FILE):
         init_db()
