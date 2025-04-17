@@ -8,17 +8,13 @@
   <style>
     body {
       font-family: sans-serif;
-      background-color: #f3f3f3;
+      background-color: #f4f4f4;
       color: #222;
       padding: 2rem;
-      transition: background-color 0.3s, color 0.3s;
     }
     .dark-mode {
       background-color: #121212;
-      color: #f3f3f3;
-    }
-    .dark-mode table, .dark-mode th, .dark-mode td {
-      border-color: #555;
+      color: #f4f4f4;
     }
     table {
       width: 100%;
@@ -27,49 +23,23 @@
     }
     th, td {
       border: 1px solid #ccc;
-      padding: 0.6rem;
+      padding: 0.5rem;
       text-align: left;
-    }
-    form {
-      margin-bottom: 2rem;
-    }
-    input[type="text"] {
-      padding: 0.4rem;
-      margin-right: 1rem;
     }
     button {
       padding: 0.4rem 1rem;
-    }
-    .qr-thumb {
-      width: 80px;
-      height: 80px;
-      object-fit: contain;
-      border: 1px solid #ccc;
-      background: white;
-      padding: 4px;
     }
     #map {
       height: 400px;
       margin-bottom: 2rem;
     }
-    #darkToggle {
-      margin-bottom: 1rem;
-    }
   </style>
 </head>
 <body>
 
-  <button id="darkToggle" onclick="toggleDarkMode()">🌓 Toggle Dark Mode</button>
-
+  <button onclick="toggleDarkMode()" style="margin-bottom: 1rem;">🌓</button>
   <h1>QR Tracker Dashboard</h1>
 
-  <form action="/add" method="POST">
-    <input type="text" name="short_id" placeholder="Short Code" required>
-    <input type="text" name="destination" placeholder="Destination URL" required>
-    <button type="submit">Add New Redirect</button>
-  </form>
-
-  <h2>Scan Stats</h2>
   <table>
     <thead>
       <tr>
@@ -77,9 +47,6 @@
         <th>Destination</th>
         <th>Scans</th>
         <th>QR</th>
-        <th>Copy Link</th>
-        <th>Edit</th>
-        <th>Delete</th>
       </tr>
     </thead>
     <tbody>
@@ -88,30 +55,13 @@
         <td>{{ row[0] }}</td>
         <td>{{ row[1] }}</td>
         <td>{{ row[2] }}</td>
-        <td>
-          <a href="/view-qr/{{ row[0] }}" target="_blank">
-            <img src="/view-qr/{{ row[0] }}" class="qr-thumb">
-          </a>
-        </td>
-        <td><button onclick="copyToClipboard('{{ request.host_url }}track?id={{ row[0] }}')">Copy</button></td>
-        <td>
-          <form action="/edit" method="POST" style="display:inline;">
-            <input type="hidden" name="short_id" value="{{ row[0] }}">
-            <input type="text" name="new_destination" placeholder="New URL">
-            <button type="submit">Update</button>
-          </form>
-        </td>
-        <td>
-          <form action="/delete/{{ row[0] }}" method="POST" style="display:inline;">
-            <button type="submit" onclick="return confirm('Are you sure?')">Delete</button>
-          </form>
-        </td>
+        <td><a href="/view-qr/{{ row[0] }}" target="_blank">View QR</a></td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
 
-  <h2>Scan Heatmap</h2>
+  <h2>Heatmap of Scans</h2>
   <div id="map"></div>
 
   <a href="/export-csv" target="_blank">Download Scan Logs (CSV)</a>
@@ -123,24 +73,17 @@
       document.body.classList.toggle("dark-mode");
     }
 
-    function copyToClipboard(text) {
-      navigator.clipboard.writeText(text).then(() => {
-        alert("Copied to clipboard!");
-      });
-    }
-
     const map = L.map('map').setView([20, 0], 2);
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
-    const heatPoints = {{ locations | tojson }};
-    if (heatPoints.length > 0) {
-      const heat = heatPoints.map(p => [p[1], p[2], 0.8]);
-      L.heatLayer(heat, { radius: 30, blur: 15 }).addTo(map);
-    } else {
-      console.warn("No heatmap points.");
+    const data = {{ locations|tojson }};
+    const heatData = data.map(loc => [loc[3], loc[4], 0.9]);
+    if (heatData.length > 0) {
+      L.heatLayer(heatData, { radius: 25 }).addTo(map);
     }
   </script>
+
 </body>
 </html>
