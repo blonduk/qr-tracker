@@ -1,47 +1,37 @@
-from flask import Flask, redirect, request, render_template, send_file
+from flask import Flask, request, redirect, render_template, send_file
+from datetime import datetime
 import qrcode
 import io
-from datetime import datetime
 import requests
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
 app = Flask(__name__)
 
-# === Google Sheets Setup ===
+# === GOOGLE SHEETS SETUP ===
 def get_sheet(sheet_name):
     scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
     creds = ServiceAccountCredentials.from_json_keyfile_name('/etc/secrets/google-credentials.json', scope)
     client = gspread.authorize(creds)
     return client.open(sheet_name).sheet1
 
-def get_redirects():
+def append_log_row(data):
+    try:
+        sheet = get_sheet("QR Scan Archive")
+        sheet.append_row(data)
+        print("[SHEET ✅] Log row added.")
+    except Exception as e:
+        print("[SHEET ❌] Error appending:", e)
+
+def fetch_redirects():
     sheet = get_sheet("QR Redirects")
     return sheet.get_all_records()
 
-def get_logs():
+def fetch_logs():
     sheet = get_sheet("QR Scan Archive")
     return sheet.get_all_records()
 
-def add_redirect(short, dest):
-    sheet = get_sheet("QR Redirects")
-    sheet.append_row([short, dest])
-
-def update_redirect(short, new_url):
-    sheet = get_sheet("QR Redirects")
-    cell = sheet.find(short)
-    sheet.update_cell(cell.row, 2, new_url)
-
-def delete_redirect(short):
-    sheet = get_sheet("QR Redirects")
-    cell = sheet.find(short)
-    sheet.delete_rows(cell.row)
-
-def append_log(data):
-    sheet = get_sheet("QR Scan Archive")
-    sheet.append_row(data)
-
-# === ROUTES ===
+# === MAIN ROUTES ===
 @app.route('/')
 def home():
     return redirect('/dashboard')
@@ -52,7 +42,7 @@ def track():
     if not short_id:
         return "Missing ID", 400
 
-    ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+    ip = request.remote_addr or request.headers.get('X-Forwarded-For', '').split(',')[0]
     ua = request.headers.get('User-Agent', '')[:250]
     timestamp = datetime.utcnow().isoformat()
 
@@ -64,44 +54,43 @@ def track():
         city = ""
         country = ""
 
-    append_log([short_id, timestamp, ip, city, country, ua])
+    row = [short_id, timestamp, ip, city, country, ua]
+    append_log_row(row)
 
-    redirects = get_redirects()
-    for row in redirects:
-        if row['short_id'] == short_id:
-            return redirect(row['destination'])
+    for entry in fetch_redirects():
+        if entry['short_id'] == short_id:
+            return redirect(entry['destination'])
 
     return "Invalid short code", 404
 
 @app.route('/dashboard')
 def dashboard():
-    redirects = get_redirects()
-    logs = get_logs()
-
-    scan_counts = {}
-    for log in logs:
-        sid = log.get('Short Code')
-        if sid:
-            scan_counts[sid] = scan_counts.get(sid, 0) + 1
+    redirects = fetch_redirects()
+    logs = fetch_logs()
 
     stats = []
-    for row in redirects:
-        sid = row['short_id']
-        dest = row['destination']
-        count = scan_counts.get(sid, 0)
+    heatmap_points = []
+
+    for redir in redirects:
+        sid = redir['short_id']
+        dest = redir['destination']
+        count = sum(1 for log in logs if log['Short Code'] == sid)
         stats.append((sid, dest, count))
 
-    heatmap = []
     for log in logs:
         try:
-            lat = float(log.get('lat', 0))
-            lon = float(log.get('lon', 0))
-            if lat and lon:
-                heatmap.append([lat, lon, 0.8])
-        except:
-            continue
+            city = log['City']
+            country = log['Country']
+            if city or country:
+                ip = log['IP']
+                geo = requests.get(f"http://ip-api.com/json/{ip}").json()
+                if geo['status'] == 'success':
+                    lat, lon = geo['lat'], geo['lon']
+                    heatmap_points.append((log['Short Code'], lat, lon))
+        except Exception as e:
+            print("[MAP GEO ERROR]", e)
 
-    return render_template("dashboard.html", stats=stats, locations=heatmap)
+    return render_template("dashboard.html", stats=stats, locations=heatmap_points)
 
 @app.route('/view-qr/<short_id>')
 def view_qr(short_id):
@@ -116,17 +105,25 @@ def view_qr(short_id):
 def add():
     short = request.form['short_id'].strip()
     dest = request.form['destination'].strip()
-    add_redirect(short, dest)
+    sheet = get_sheet("QR Redirects")
+    sheet.append_row([short, dest])
     return redirect('/dashboard')
 
 @app.route('/edit', methods=['POST'])
 def edit():
-    short = request.form['short_id'].strip()
-    new_url = request.form['new_destination'].strip()
-    update_redirect(short, new_url)
+    short = request.form['short_id']
+    new_url = request.form['new_destination']
+    sheet = get_sheet("QR Redirects")
+    cell = sheet.find(short)
+    sheet.update_cell(cell.row, 2, new_url)
     return redirect('/dashboard')
 
 @app.route('/delete/<short_id>', methods=['POST'])
 def delete(short_id):
-    delete_redirect(short_id)
+    sheet = get_sheet("QR Redirects")
+    cell = sheet.find(short_id)
+    sheet.delete_rows(cell.row)
     return redirect('/dashboard')
+
+if __name__ == '__main__':
+    app.run(host="0.0.0.0", port=5000)
