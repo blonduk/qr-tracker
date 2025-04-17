@@ -11,6 +11,14 @@
       background-color: #f3f3f3;
       color: #222;
       padding: 2rem;
+      transition: background-color 0.3s, color 0.3s;
+    }
+    .dark-mode {
+      background-color: #121212;
+      color: #f3f3f3;
+    }
+    .dark-mode table, .dark-mode th, .dark-mode td {
+      border-color: #555;
     }
     table {
       width: 100%;
@@ -44,9 +52,14 @@
       height: 400px;
       margin-bottom: 2rem;
     }
+    #darkToggle {
+      margin-bottom: 1rem;
+    }
   </style>
 </head>
 <body>
+
+  <button id="darkToggle" onclick="toggleDarkMode()">🌓 Toggle Dark Mode</button>
 
   <h1>QR Tracker Dashboard</h1>
 
@@ -64,7 +77,7 @@
         <th>Destination</th>
         <th>Scans</th>
         <th>QR</th>
-        <th>Copy</th>
+        <th>Copy Link</th>
         <th>Edit</th>
         <th>Delete</th>
       </tr>
@@ -101,9 +114,15 @@
   <h2>Scan Heatmap</h2>
   <div id="map"></div>
 
+  <a href="/export-csv" target="_blank">Download Scan Logs (CSV)</a>
+
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
   <script>
+    function toggleDarkMode() {
+      document.body.classList.toggle("dark-mode");
+    }
+
     function copyToClipboard(text) {
       navigator.clipboard.writeText(text).then(() => {
         alert("Copied to clipboard!");
@@ -111,17 +130,17 @@
     }
 
     const map = L.map('map').setView([20, 0], 2);
-    L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors',
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
-    const heatData = {{ locations | tojson }};
-    if (heatData.length > 0) {
-      L.heatLayer(heatData, { radius: 25, blur: 15, maxZoom: 10 }).addTo(map);
+    const heatPoints = {{ locations | tojson }};
+    if (heatPoints.length > 0) {
+      const heat = heatPoints.map(p => [p[1], p[2], 0.8]);
+      L.heatLayer(heat, { radius: 30, blur: 15 }).addTo(map);
     } else {
-      console.warn("No heatmap data to display.");
+      console.warn("No heatmap points.");
     }
   </script>
-
 </body>
 </html>
