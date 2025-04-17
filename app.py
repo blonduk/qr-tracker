@@ -1,4 +1,4 @@
-from flask import Flask, redirect, request, render_template, send_file
+from flask import Flask, request, redirect, render_template, send_file
 import qrcode
 import io
 import csv
@@ -12,12 +12,32 @@ app = Flask(__name__)
 # === Google Sheets Setup ===
 def get_sheet(sheet_name):
     scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-    creds = ServiceAccountCredentials.from_json_keyfile_name('/etc/secrets/google-credentials.json', scope)
+    creds = ServiceAccountCredentials.from_json_keyfile_name('path_to_your_credentials.json', scope)
     client = gspread.authorize(creds)
     return client.open(sheet_name).sheet1
 
-# === Routes ===
+# === Helper Functions ===
+def get_client_ip():
+    if request.headers.get('X-Forwarded-For'):
+        return request.headers['X-Forwarded-For'].split(',')[0].strip()
+    return request.remote_addr
 
+def geolocate_ip(ip):
+    try:
+        response = requests.get(f"http://ip-api.com/json/{ip}")
+        data = response.json()
+        if data['status'] == 'success':
+            return {
+                'city': data.get('city', ''),
+                'country': data.get('country', ''),
+                'lat': data.get('lat', ''),
+                'lon': data.get('lon', '')
+            }
+    except Exception as e:
+        print(f"[GEO ERROR] {e}")
+    return {'city': '', 'country': '', 'lat': '', 'lon': ''}
+
+# === Routes ===
 @app.route('/')
 def home():
     return redirect('/dashboard')
@@ -28,20 +48,13 @@ def track():
     if not short_id:
         return "Missing short ID", 400
 
-    ip = request.remote_addr
+    ip = get_client_ip()
     ua = request.headers.get('User-Agent', '')[:250]
     timestamp = datetime.utcnow().isoformat()
 
-    try:
-        geo = requests.get(f"http://ip-api.com/json/{ip}").json()
-        city = geo.get("city", "")
-        country = geo.get("country", "")
-        lat = geo.get("lat", "")
-        lon = geo.get("lon", "")
-    except:
-        city = country = lat = lon = ""
+    geo = geolocate_ip(ip)
 
-    row = [short_id, timestamp, ip, city, country, lat, lon, ua]
+    row = [short_id, timestamp, ip, geo['city'], geo['country'], geo['lat'], geo['lon'], ua]
     print("[SCAN] →", row)
 
     try:
