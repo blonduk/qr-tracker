@@ -1,37 +1,37 @@
-from flask import Flask, request, redirect, render_template, send_file
+from flask import Flask, redirect, request, render_template, send_file
 from datetime import datetime
-import qrcode
 import io
+import csv
+import qrcode
 import requests
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
 app = Flask(__name__)
 
-# === GOOGLE SHEETS SETUP ===
+# === GOOGLE SHEETS ===
 def get_sheet(sheet_name):
     scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
     creds = ServiceAccountCredentials.from_json_keyfile_name('/etc/secrets/google-credentials.json', scope)
     client = gspread.authorize(creds)
     return client.open(sheet_name).sheet1
 
-def append_log_row(data):
-    try:
-        sheet = get_sheet("QR Scan Archive")
-        sheet.append_row(data)
-        print("[SHEET ✅] Log row added.")
-    except Exception as e:
-        print("[SHEET ❌] Error appending:", e)
-
-def fetch_redirects():
+def load_redirects():
     sheet = get_sheet("QR Redirects")
-    return sheet.get_all_records()
+    data = sheet.get_all_records()
+    return {row['Short Code']: row['Destination'] for row in data if row['Short Code'] and row['Destination']}
 
-def fetch_logs():
+def log_scan(short_id, ip, city, country, ua):
     sheet = get_sheet("QR Scan Archive")
-    return sheet.get_all_records()
+    timestamp = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+    row = [short_id, timestamp, ip, city, country, ua]
+    try:
+        sheet.append_row(row)
+        print("[SCAN LOGGED ✅]", row)
+    except Exception as e:
+        print("[❌ LOG ERROR]", e)
 
-# === MAIN ROUTES ===
+# === ROUTES ===
 @app.route('/')
 def home():
     return redirect('/dashboard')
@@ -40,11 +40,15 @@ def home():
 def track():
     short_id = request.args.get('id')
     if not short_id:
-        return "Missing ID", 400
+        return "Missing QR ID", 400
 
-    ip = request.remote_addr or request.headers.get('X-Forwarded-For', '').split(',')[0]
+    redirects = load_redirects()
+    destination = redirects.get(short_id)
+    if not destination:
+        return "Invalid QR code", 404
+
+    ip = request.headers.get('X-Forwarded-For', request.remote_addr)
     ua = request.headers.get('User-Agent', '')[:250]
-    timestamp = datetime.utcnow().isoformat()
 
     try:
         geo = requests.get(f"http://ip-api.com/json/{ip}").json()
@@ -54,43 +58,46 @@ def track():
         city = ""
         country = ""
 
-    row = [short_id, timestamp, ip, city, country, ua]
-    append_log_row(row)
-
-    for entry in fetch_redirects():
-        if entry['short_id'] == short_id:
-            return redirect(entry['destination'])
-
-    return "Invalid short code", 404
+    log_scan(short_id, ip, city, country, ua)
+    return redirect(destination)
 
 @app.route('/dashboard')
 def dashboard():
-    redirects = fetch_redirects()
-    logs = fetch_logs()
+    redirects = load_redirects()
+    logs = get_sheet("QR Scan Archive").get_all_records()
 
-    stats = []
-    heatmap_points = []
+    stats = {}
+    for short_id in redirects:
+        stats[short_id] = {
+            'destination': redirects[short_id],
+            'scans': 0
+        }
 
-    for redir in redirects:
-        sid = redir['short_id']
-        dest = redir['destination']
-        count = sum(1 for log in logs if log['Short Code'] == sid)
-        stats.append((sid, dest, count))
-
+    locations = []
     for log in logs:
-        try:
-            city = log['City']
-            country = log['Country']
-            if city or country:
-                ip = log['IP']
-                geo = requests.get(f"http://ip-api.com/json/{ip}").json()
-                if geo['status'] == 'success':
-                    lat, lon = geo['lat'], geo['lon']
-                    heatmap_points.append((log['Short Code'], lat, lon))
-        except Exception as e:
-            print("[MAP GEO ERROR]", e)
+        sid = log.get('Short Code')
+        if sid in stats:
+            stats[sid]['scans'] += 1
+        city = log.get('City', '')
+        country = log.get('Country', '')
+        if city and country:
+            try:
+                geo = requests.get(f"https://nominatim.openstreetmap.org/search", params={
+                    'city': city,
+                    'country': country,
+                    'format': 'json',
+                    'limit': 1
+                }, headers={'User-Agent': 'qr-tracker'}).json()
+                if geo:
+                    lat = float(geo[0]['lat'])
+                    lon = float(geo[0]['lon'])
+                    locations.append([sid, city, country, lat, lon])
+            except:
+                continue
 
-    return render_template("dashboard.html", stats=stats, locations=heatmap_points)
+    rows = [(sid, stats[sid]['destination'], stats[sid]['scans']) for sid in stats]
+
+    return render_template("dashboard.html", stats=rows, locations=locations)
 
 @app.route('/view-qr/<short_id>')
 def view_qr(short_id):
@@ -101,29 +108,15 @@ def view_qr(short_id):
     buf.seek(0)
     return send_file(buf, mimetype='image/png')
 
-@app.route('/add', methods=['POST'])
-def add():
-    short = request.form['short_id'].strip()
-    dest = request.form['destination'].strip()
-    sheet = get_sheet("QR Redirects")
-    sheet.append_row([short, dest])
-    return redirect('/dashboard')
-
-@app.route('/edit', methods=['POST'])
-def edit():
-    short = request.form['short_id']
-    new_url = request.form['new_destination']
-    sheet = get_sheet("QR Redirects")
-    cell = sheet.find(short)
-    sheet.update_cell(cell.row, 2, new_url)
-    return redirect('/dashboard')
-
-@app.route('/delete/<short_id>', methods=['POST'])
-def delete(short_id):
-    sheet = get_sheet("QR Redirects")
-    cell = sheet.find(short_id)
-    sheet.delete_rows(cell.row)
-    return redirect('/dashboard')
+@app.route('/export-csv')
+def export_csv():
+    sheet = get_sheet("QR Scan Archive")
+    logs = sheet.get_all_values()
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerows(logs)
+    output.seek(0)
+    return send_file(io.BytesIO(output.getvalue().encode()), mimetype='text/csv', as_attachment=True, download_name='qr-logs.csv')
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host='0.0.0.0', port=5000)
