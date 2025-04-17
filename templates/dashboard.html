@@ -20,9 +20,6 @@
     .dark-mode table, .dark-mode th, .dark-mode td {
       border-color: #555;
     }
-    h1, h2 {
-      margin-top: 0;
-    }
     table {
       width: 100%;
       border-collapse: collapse;
@@ -55,11 +52,14 @@
       height: 400px;
       margin-bottom: 2rem;
     }
+    #darkToggle {
+      margin-bottom: 1rem;
+    }
   </style>
 </head>
 <body>
 
-  <button onclick="toggleDarkMode()">🌓 Toggle Dark Mode</button>
+  <button id="darkToggle" onclick="toggleDarkMode()">🌓 Dark Mode</button>
 
   <h1>QR Tracker Dashboard</h1>
 
@@ -90,12 +90,10 @@
         <td>{{ row[2] }}</td>
         <td>
           <a href="/view-qr/{{ row[0] }}" target="_blank">
-            <img src="/view-qr/{{ row[0] }}" class="qr-thumb" alt="QR for {{ row[0] }}">
+            <img src="/view-qr/{{ row[0] }}" class="qr-thumb">
           </a>
         </td>
-        <td>
-          <button onclick="copyToClipboard('{{ request.host_url }}track?id={{ row[0] }}')">Copy</button>
-        </td>
+        <td><button onclick="copyToClipboard('{{ request.host_url }}track?id={{ row[0] }}')">Copy</button></td>
         <td>
           <form action="/edit" method="POST" style="display:inline;">
             <input type="hidden" name="short_id" value="{{ row[0] }}">
@@ -132,17 +130,19 @@
     }
 
     const map = L.map('map').setView([20, 0], 2);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
     const raw = {{ locations|tojson }};
-    const heatPoints = raw.map(loc => [loc[2], loc[3], 0.9]);
+    const heatPoints = raw
+      .filter(loc => loc[1] && loc[2])
+      .map(loc => [loc[1], loc[2], 0.9]);
 
     if (heatPoints.length > 0) {
-      L.heatLayer(heatPoints, { radius: 30, blur: 15, maxZoom: 10 }).addTo(map);
+      L.heatLayer(heatPoints, { radius: 25, blur: 15 }).addTo(map);
     } else {
-      console.warn("No scan data available for heatmap.");
+      console.warn("No heatmap data available.");
     }
   </script>
 
