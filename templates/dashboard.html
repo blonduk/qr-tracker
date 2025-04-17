@@ -20,6 +20,13 @@
     .dark-mode table, .dark-mode th, .dark-mode td {
       border-color: #555;
     }
+    button {
+      padding: 0.4rem 1rem;
+    }
+    input[type="text"] {
+      padding: 0.4rem;
+      margin-right: 1rem;
+    }
     table {
       width: 100%;
       border-collapse: collapse;
@@ -29,16 +36,6 @@
       border: 1px solid #ccc;
       padding: 0.6rem;
       text-align: left;
-    }
-    form {
-      margin-bottom: 2rem;
-    }
-    input[type="text"] {
-      padding: 0.4rem;
-      margin-right: 1rem;
-    }
-    button {
-      padding: 0.4rem 1rem;
     }
     .qr-thumb {
       width: 80px;
@@ -56,9 +53,7 @@
 </head>
 <body>
 
-  <div style="margin-bottom: 1rem;">
-    <button onclick="toggleDarkMode()">🌓 Toggle Dark Mode</button>
-  </div>
+  <button onclick="toggleDarkMode()">🌓 Toggle Dark Mode</button>
 
   <h1>QR Tracker Dashboard</h1>
 
@@ -129,20 +124,43 @@
     }
 
     const map = L.map('map').setView([20, 0], 2);
-
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
-      subdomains: 'abcd',
-      maxZoom: 19
+    L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors, tiles by osm.fr',
+      maxZoom: 18
     }).addTo(map);
 
     const raw = {{ locations|tojson }};
-    const heatPoints = raw.map(loc => [loc[1], loc[2], 0.9]);
-    if (heatPoints.length > 0) {
-      L.heatLayer(heatPoints, { radius: 25, blur: 15 }).addTo(map);
-    } else {
-      console.warn("No valid scan locations to show on map.");
+    const geocoderURL = 'https://nominatim.openstreetmap.org/search?format=json&q=';
+
+    async function addMarkersFromLocations(locations) {
+      const grouped = {};
+      for (const loc of locations) {
+        const key = `${loc[1]},${loc[2]}`;
+        grouped[key] = (grouped[key] || 0) + 1;
+      }
+
+      const heatPoints = [];
+
+      for (const place in grouped) {
+        try {
+          const response = await fetch(geocoderURL + encodeURIComponent(place));
+          const data = await response.json();
+          if (data && data.length > 0) {
+            const lat = parseFloat(data[0].lat);
+            const lon = parseFloat(data[0].lon);
+            heatPoints.push([lat, lon, 0.9]);
+          }
+        } catch (e) {
+          console.warn("Geo error for", place, e);
+        }
+      }
+
+      if (heatPoints.length > 0) {
+        L.heatLayer(heatPoints, { radius: 25, blur: 15, maxZoom: 10 }).addTo(map);
+      }
     }
+
+    addMarkersFromLocations(raw);
   </script>
 
 </body>
