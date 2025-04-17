@@ -20,6 +20,9 @@
     .dark-mode table, .dark-mode th, .dark-mode td {
       border-color: #555;
     }
+    h1, h2 {
+      margin-top: 0;
+    }
     table {
       width: 100%;
       border-collapse: collapse;
@@ -56,9 +59,9 @@
 </head>
 <body>
 
-  <h1>QR Tracker Dashboard</h1>
-
   <button onclick="toggleDarkMode()">🌓 Toggle Dark Mode</button>
+
+  <h1>QR Tracker Dashboard</h1>
 
   <form action="/add" method="POST">
     <input type="text" name="short_id" placeholder="Short Code" required>
@@ -87,10 +90,12 @@
         <td>{{ row[2] }}</td>
         <td>
           <a href="/view-qr/{{ row[0] }}" target="_blank">
-            <img src="/view-qr/{{ row[0] }}" class="qr-thumb">
+            <img src="/view-qr/{{ row[0] }}" class="qr-thumb" alt="QR for {{ row[0] }}">
           </a>
         </td>
-        <td><button onclick="copyToClipboard('{{ request.host_url }}track?id={{ row[0] }}')">Copy</button></td>
+        <td>
+          <button onclick="copyToClipboard('{{ request.host_url }}track?id={{ row[0] }}')">Copy</button>
+        </td>
         <td>
           <form action="/edit" method="POST" style="display:inline;">
             <input type="hidden" name="short_id" value="{{ row[0] }}">
@@ -132,12 +137,12 @@
     }).addTo(map);
 
     const raw = {{ locations|tojson }};
-    const heatPoints = raw.map(loc => [loc[2], loc[3], 0.8]);
+    const heatPoints = raw.map(loc => [loc[2], loc[3], 0.9]);
 
     if (heatPoints.length > 0) {
-      L.heatLayer(heatPoints, { radius: 30, blur: 20 }).addTo(map);
+      L.heatLayer(heatPoints, { radius: 30, blur: 15, maxZoom: 10 }).addTo(map);
     } else {
-      console.warn("No valid heatmap points");
+      console.warn("No scan data available for heatmap.");
     }
   </script>
 
