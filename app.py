@@ -59,22 +59,36 @@ def home():
 
 @app.route('/dashboard')
 def dashboard():
-    redirects = get_redirects()
-    logs = get_logs()
-
     stats = []
-    for r in redirects:
-        short_id = r['Short Code']
-        dest = r['Destination']
-        count = sum(1 for log in logs if log['Short Code'] == short_id)
-        stats.append((short_id, dest, count))
-
     locations = []
-    for log in logs:
-        if log['City'] and log['Country']:
-            locations.append((log['Short Code'], log['City'], log['Country']))
-    
-    return render_template('dashboard.html', stats=stats, locations=locations)
+
+    try:
+        redirect_sheet = get_sheet("QR Redirects")
+        rows = redirect_sheet.get_all_records()
+        for row in rows:
+            short_id = row.get("Short Code")
+            dest = row.get("Destination")
+            scan_count = 0
+
+            # Count matching rows in the archive
+            archive = get_sheet("QR Scan Archive").get_all_records()
+            scan_count = sum(1 for log in archive if log.get("Short Code") == short_id)
+
+            stats.append((short_id, dest, scan_count))
+
+        # Get heatmap locations
+        for log in archive:
+            if log.get("City") and log.get("Country"):
+                lat = GEO_LOOKUP.get(log["City"], {}).get("lat")
+                lon = GEO_LOOKUP.get(log["City"], {}).get("lon")
+                if lat and lon:
+                    locations.append([log["Short Code"], log["City"], log["Country"], lat, lon])
+
+    except Exception as e:
+        print("[DASHBOARD ERROR]", e)
+
+    return render_template("dashboard.html", stats=stats, locations=locations)
+
 
 @app.route('/track')
 def track():
