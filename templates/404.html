@@ -1,60 +1,47 @@
+<!-- templates/404.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Page Not Found</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>404 - Page Not Found</title>
   <style>
     body {
-      font-family: 'Segoe UI', sans-serif;
-      background: #f0f2f5;
-      color: #333;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-    }
-
-    .error-box {
+      background-color: #000;
+      color: #0ff;
+      font-family: 'Courier New', Courier, monospace;
       text-align: center;
-      background: white;
-      padding: 2rem 2.5rem;
-      border-radius: 10px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+      padding-top: 50px;
     }
 
     h1 {
-      font-size: 3rem;
-      margin-bottom: 0.5rem;
+      font-size: 5rem;
+      margin-bottom: 1rem;
+      animation: glitch 1s infinite;
     }
 
     p {
-      font-size: 1.2rem;
-      margin-bottom: 1.5rem;
+      font-size: 1.5rem;
     }
 
-    a {
-      display: inline-block;
-      padding: 0.6rem 1.2rem;
-      background: #007BFF;
-      color: white;
-      text-decoration: none;
-      border-radius: 5px;
+    img {
+      margin-top: 30px;
+      width: 70%;
+      max-width: 600px;
+      border: 4px solid #0ff;
     }
 
-    a:hover {
-      background: #0056b3;
+    @keyframes glitch {
+      0% { text-shadow: 2px 2px #f0f, -2px -2px #0ff; }
+      25% { text-shadow: -2px 2px #0ff, 2px -2px #f0f; }
+      50% { text-shadow: 2px -2px #f0f, -2px 2px #0ff; }
+      75% { text-shadow: -2px -2px #0ff, 2px 2px #f0f; }
+      100% { text-shadow: 2px 2px #f0f, -2px -2px #0ff; }
     }
   </style>
 </head>
 <body>
-
-  <div class="error-box">
-    <h1>404</h1>
-    <p>Sorry, that page doesn’t exist.</p>
-    <a href="/">Go to Dashboard</a>
-  </div>
-
+  <h1>404</h1>
+  <p>Page Not Found... but the signal is still strong.</p>
+  <img src="{{ url_for('static', filename='images/404_glitch.png') }}" alt="404 glitch">
 </body>
 </html>
