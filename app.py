@@ -19,7 +19,7 @@ USERS = {
 # Google Sheets setup
 def get_sheet(name):
     scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-    creds_path = 'etc/secrets/google-credentials.json'
+    creds_path = '/etc/secrets/google-credentials.json'  # ✅ FIXED path
     creds = ServiceAccountCredentials.from_json_keyfile_name(creds_path, scope)
     client = gspread.authorize(creds)
     return client.open(name).sheet1
