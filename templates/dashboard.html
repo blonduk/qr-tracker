@@ -1,40 +1,40 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Glitch Link Dashboard</title>
-  <link rel="stylesheet" href="/static/style.css">
-  <link rel="icon" type="image/png" href="/static/images/favicon.png">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard | Glitch Link</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="icon" href="/static/favicon.ico" type="image/x-icon" />
 </head>
 <body>
-  <div class="container">
-    <header>
-      <h1>Glitch Link</h1>
-      <p class="subtitle">QR Code Generator and Tracker</p>
-      <div class="top-bar">
-        <span class="welcome">Logged in as: <strong>{{ user }}</strong></span>
-        <a href="/logout" class="logout-button">Logout</a>
-      </div>
-    </header>
+  <header class="glitch-header">
+    <h1>Glitch Link</h1>
+    <p class="tagline">QR Code Generator and Tracker</p>
+    <nav>
+      <span>Logged in as: <strong>{{ user }}</strong></span>
+      <a href="/logout" class="logout-btn">Logout</a>
+    </nav>
+  </header>
 
+  <main class="glitch-container">
     <section class="form-section">
-      <h2>Create New QR Redirect</h2>
-      <form action="/add" method="POST" class="redirect-form">
-        <input type="text" name="short_id" placeholder="Short Code" required>
-        <input type="text" name="destination" placeholder="Destination URL" required>
-        <button type="submit">Add</button>
+      <form action="/add" method="POST" class="add-form">
+        <input type="text" name="short_id" placeholder="Short Code" required />
+        <input type="text" name="destination" placeholder="Destination URL" required />
+        <button type="submit">Add New Redirect</button>
       </form>
     </section>
 
     <section class="stats-section">
-      <h2>Your QR Codes</h2>
+      <h2>Scan Stats</h2>
       <table>
         <thead>
           <tr>
             <th>Short Code</th>
             <th>Destination</th>
             <th>Scans</th>
-            <th>QR Code</th>
+            <th>QR</th>
             <th>Copy Link</th>
             <th>Edit</th>
             <th>Delete</th>
@@ -48,37 +48,37 @@
             <td>{{ row[2] }}</td>
             <td>
               <a href="/view-qr/{{ row[0] }}" target="_blank">
-                <img src="/view-qr/{{ row[0] }}" class="qr-thumb">
+                <img src="/view-qr/{{ row[0] }}" class="qr-thumb" />
               </a>
             </td>
             <td>
               <button onclick="copyToClipboard('{{ request.host_url }}track?id={{ row[0] }}')">Copy</button>
             </td>
             <td>
-              <form action="/edit" method="POST" class="inline-form">
-                <input type="hidden" name="short_id" value="{{ row[0] }}">
-                <input type="text" name="new_destination" placeholder="New URL">
+              <form action="/edit" method="POST">
+                <input type="hidden" name="short_id" value="{{ row[0] }}" />
+                <input type="text" name="new_destination" placeholder="New URL" />
                 <button type="submit">Update</button>
               </form>
             </td>
             <td>
-              <form action="/delete/{{ row[0] }}" method="POST" class="inline-form">
-                <button type="submit" onclick="return confirm('Are you sure?')">Delete</button>
+              <form action="/delete/{{ row[0] }}" method="POST" onsubmit="return confirm('Delete this redirect?')">
+                <button type="submit">Delete</button>
               </form>
             </td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
-
-      <div class="export-links">
-        <a href="/export-csv" class="export-btn">⬇ Download Scan Logs (CSV)</a>
-      </div>
     </section>
-  </div>
+
+    <div class="export-link">
+      <a href="/export-csv" target="_blank">⬇️ Download Scan Logs (CSV)</a>
+    </div>
+  </main>
 
   <footer>
-    &copy; {{ now().year }} Glitch Link. All rights reserved.
+    &copy; {{ year }} Glitch Link. All rights reserved.
   </footer>
 
   <script>
