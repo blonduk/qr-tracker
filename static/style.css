@@ -1,123 +1,81 @@
 body {
+  background: #0d0d0d;
+  color: #e3e3e3;
   font-family: 'Courier New', monospace;
-  background-color: #0a0a0a;
-  color: #00ffcc;
-  padding: 2rem;
   margin: 0;
-  line-height: 1.6;
-  background-image: repeating-linear-gradient(45deg, #111 0px, #111 2px, #0a0a0a 2px, #0a0a0a 4px);
+  padding: 2rem;
 }
 
-.dark-mode {
-  background-color: #000;
+.container {
+  max-width: 900px;
+  margin: auto;
+  text-align: center;
+}
+
+.glitch-title {
+  font-size: 3rem;
+  color: #ff00cc;
+  text-shadow: -2px 0 cyan, 2px 2px magenta;
+}
+
+.subtitle {
+  font-size: 1.2rem;
+  margin-bottom: 2rem;
+  color: #ccc;
+}
+
+form input[type="text"],
+form input[type="password"] {
+  padding: 0.6rem;
+  margin: 0.5rem;
+  width: 240px;
+  max-width: 100%;
+  background: #111;
+  border: 1px solid #444;
   color: #fff;
 }
 
-h1, h2 {
-  font-family: 'Courier New', monospace;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  color: #ff00aa;
-  border-left: 6px solid #ff00aa;
-  padding-left: 0.5rem;
-}
-
-.header-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-  flex-wrap: wrap;
-}
-
 button {
-  background: #00ffcc;
-  color: #000;
+  background: #ff00cc;
   border: none;
-  padding: 0.5rem 1.2rem;
-  font-weight: bold;
-  font-family: monospace;
+  color: #fff;
+  padding: 0.6rem 1rem;
+  margin-top: 0.5rem;
   cursor: pointer;
-  transition: transform 0.1s ease-in-out;
 }
 
 button:hover {
-  transform: scale(1.05);
-  background-color: #ff00aa;
-  color: white;
-}
-
-input[type="text"] {
-  padding: 0.4rem;
-  margin: 0.2rem;
-  width: 200px;
-  background: #111;
-  border: 1px solid #444;
-  color: #00ffcc;
-}
-
-form {
-  margin-bottom: 1.5rem;
+  background: #ff33cc;
 }
 
 table {
   width: 100%;
+  margin-top: 2rem;
   border-collapse: collapse;
-  margin-bottom: 1rem;
-  font-size: 0.95rem;
 }
 
 th, td {
   border: 1px solid #333;
-  padding: 0.6rem;
-  text-align: left;
-}
-
-th {
-  background-color: #222;
-  color: #ff00aa;
+  padding: 0.5rem;
 }
 
 .qr-thumb {
-  width: 80px;
-  height: 80px;
-  background: white;
-  padding: 2px;
-  border: 1px solid #00ffcc;
+  width: 60px;
+  height: 60px;
 }
 
-a {
-  color: #00ffff;
-}
-
-.csv-link {
+.download-btn, .logout-btn {
   display: inline-block;
-  margin-top: 1rem;
-  background: #ff00aa;
-  color: #fff;
+  margin: 1rem;
   padding: 0.5rem 1rem;
+  background: #0080ff;
+  color: white;
   text-decoration: none;
-  font-weight: bold;
-  border-radius: 2px;
+  border-radius: 4px;
 }
 
-.csv-link:hover {
-  background: #00ffcc;
-  color: black;
-}
-
-@media screen and (max-width: 768px) {
-  .header-bar {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  input[type="text"] {
-    width: 100%;
-    margin-bottom: 0.5rem;
-  }
-
-  table, th, td {
-    font-size: 0.9rem;
-  }
+footer {
+  margin-top: 3rem;
+  font-size: 0.8rem;
+  color: #666;
 }
