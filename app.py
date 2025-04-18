@@ -5,26 +5,23 @@ import csv
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
-import os
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key_here'
 
-# User accounts
 USERS = {
     "Laurence2k": "qrtracker69",
     "Jack": "artoneggs"
 }
 
-# Google Sheets setup
+# === GOOGLE SHEETS ===
 def get_sheet(name):
     scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-    creds_path = '/etc/secrets/google-credentials.json'  # ✅ FIXED path
+    creds_path = '/etc/secrets/google-credentials.json'
     creds = ServiceAccountCredentials.from_json_keyfile_name(creds_path, scope)
     client = gspread.authorize(creds)
     return client.open(name).sheet1
 
-# Helpers
 def load_redirects():
     sheet = get_sheet("QR Redirects")
     return sheet.get_all_records()
@@ -33,7 +30,7 @@ def load_logs():
     sheet = get_sheet("QR Scan Archive")
     return sheet.get_all_records()
 
-# Routes
+# === ROUTES ===
 @app.route('/')
 def home():
     if 'user' not in session:
@@ -60,7 +57,6 @@ def logout():
 def dashboard():
     if 'user' not in session:
         return redirect('/login')
-    
     user = session['user']
     redirects = [r for r in load_redirects() if r['User'] == user]
     logs = load_logs()
@@ -78,11 +74,9 @@ def dashboard():
 def add():
     if 'user' not in session:
         return redirect('/login')
-    
     short = request.form['short_id'].strip()
     dest = request.form['destination'].strip()
     user = session['user']
-
     sheet = get_sheet("QR Redirects")
     sheet.append_row([short, dest, user])
     return redirect('/dashboard')
@@ -91,7 +85,6 @@ def add():
 def edit():
     if 'user' not in session:
         return redirect('/login')
-    
     short = request.form['short_id'].strip()
     new_url = request.form['new_destination'].strip()
     sheet = get_sheet("QR Redirects")
@@ -106,7 +99,6 @@ def edit():
 def delete(short_id):
     if 'user' not in session:
         return redirect('/login')
-    
     sheet = get_sheet("QR Redirects")
     records = sheet.get_all_records()
     for i, row in enumerate(records, start=2):
@@ -120,7 +112,6 @@ def track():
     short_id = request.args.get('id')
     if not short_id:
         return "Missing ID", 400
-
     ip = request.remote_addr
     ua = request.headers.get('User-Agent', '')[:250]
     timestamp = datetime.utcnow().isoformat()
@@ -137,7 +128,6 @@ def track():
 
     scan_sheet = get_sheet("QR Scan Archive")
     scan_sheet.append_row([short_id, timestamp, ip, '', '', ua])
-
     return redirect(match['Destination'])
 
 @app.route('/view-qr/<short_id>')
@@ -153,7 +143,6 @@ def view_qr(short_id):
 def export_csv():
     if 'user' not in session:
         return redirect('/login')
-    
     user = session['user']
     logs = load_logs()
     user_codes = [r['Short Code'] for r in load_redirects() if r['User'] == user]
