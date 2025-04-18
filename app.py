@@ -1,35 +1,61 @@
-from flask import Flask, request, redirect, render_template, send_file
-from datetime import datetime
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
-import requests
+from flask import Flask, redirect, request, render_template, send_file
 import qrcode
 import io
 import csv
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+from datetime import datetime
 
 app = Flask(__name__)
 
-# === Google Sheets Setup ===
-def get_sheet(name):
+# === GOOGLE SHEETS SETUP ===
+def get_sheet(sheet_name):
     scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-    creds = ServiceAccountCredentials.from_json_keyfile_name('/etc/secrets/google-credentials.json', scope)
+    creds_path = '/etc/secrets/google-credentials.json'
+    creds = ServiceAccountCredentials.from_json_keyfile_name(creds_path, scope)
     client = gspread.authorize(creds)
-    return client.open(name).sheet1
+    return client.open(sheet_name).sheet1
 
 def load_redirects():
     sheet = get_sheet("QR Redirects")
+    data = sheet.get_all_records()
+    return {row['Short Code']: row['Destination'] for row in data if row.get('Short Code') and row.get('Destination')}
+
+def save_redirect(short_code, destination):
+    sheet = get_sheet("QR Redirects")
+    sheet.append_row([short_code, destination])
+
+def update_redirect(short_code, new_dest):
+    sheet = get_sheet("QR Redirects")
+    data = sheet.get_all_records()
+    for idx, row in enumerate(data, start=2):  # header is row 1
+        if row['Short Code'] == short_code:
+            sheet.update_cell(idx, 2, new_dest)
+
+def delete_redirect(short_code):
+    sheet = get_sheet("QR Redirects")
+    data = sheet.get_all_records()
+    for idx, row in enumerate(data, start=2):
+        if row['Short Code'] == short_code:
+            sheet.delete_rows(idx)
+            break
+
+def append_scan(short_code, ip, city, country, ua):
+    sheet = get_sheet("QR Scan Archive")
+    timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    sheet.append_row([short_code, timestamp, ip, city, country, ua])
+
+def count_scans():
+    sheet = get_sheet("QR Scan Archive")
     rows = sheet.get_all_records()
-    return {row["Short Code"]: row["Destination"] for row in rows if "Short Code" in row and "Destination" in row}
+    stats = {}
+    for row in rows:
+        sid = row.get("Short Code")
+        if sid:
+            stats[sid] = stats.get(sid, 0) + 1
+    return stats
 
-def append_scan_log(data):
-    sheet = get_sheet("QR Scan Archive")
-    sheet.append_row(data)
-
-def load_logs():
-    sheet = get_sheet("QR Scan Archive")
-    return sheet.get_all_records()
-
-# === Routes ===
+# === ROUTES ===
 @app.route('/')
 def home():
     return redirect('/dashboard')
@@ -40,90 +66,63 @@ def track():
     if not short_id:
         return "Missing ID", 400
 
-    redirects = load_redirects()
-    dest = redirects.get(short_id)
-    if not dest:
-        return "Invalid short code", 404
-
-    ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+    ip = request.remote_addr
     ua = request.headers.get('User-Agent', '')[:250]
-    timestamp = datetime.utcnow().isoformat()
-
-    # Geo IP
+    geo = {}
     try:
         geo = requests.get(f"http://ip-api.com/json/{ip}").json()
-        city = geo.get("city", "")
-        country = geo.get("country", "")
     except:
-        city = ""
-        country = ""
+        pass
 
-    append_scan_log([short_id, timestamp, ip, city, country, ua])
-    return redirect(dest)
+    city = geo.get("city", "")
+    country = geo.get("country", "")
+
+    redirects = load_redirects()
+    dest = redirects.get(short_id)
+    append_scan(short_id, ip, city, country, ua)
+
+    if dest:
+        return redirect(dest)
+    else:
+        return "Invalid code", 404
 
 @app.route('/dashboard')
 def dashboard():
-    logs = load_logs()
     redirects = load_redirects()
-
-    # Count scans per short_id
-    scan_counts = {}
-    for row in logs:
-        sid = row.get("Short Code", "")
-        if sid:
-            scan_counts[sid] = scan_counts.get(sid, 0) + 1
-
-    # Build stats
+    scans = count_scans()
     stats = []
-    for sid, dest in redirects.items():
-        stats.append([sid, dest, scan_counts.get(sid, 0)])
-
-    # Build map locations
-    locations = []
-    for row in logs:
-        ip = row.get("IP", "")
-        short_id = row.get("Short Code", "")
-        try:
-            geo = requests.get(f"http://ip-api.com/json/{ip}").json()
-            if geo.get("status") == "success":
-                lat = geo.get("lat")
-                lon = geo.get("lon")
-                if lat and lon:
-                    locations.append([short_id, geo.get("city", ""), lat, lon])
-        except:
-            continue
-
-    return render_template("dashboard.html", stats=stats, locations=locations)
+    for code, url in redirects.items():
+        stats.append((code, url, scans.get(code, 0)))
+    return render_template("dashboard.html", stats=stats)
 
 @app.route('/add', methods=['POST'])
 def add():
     short = request.form['short_id'].strip()
     dest = request.form['destination'].strip()
-    sheet = get_sheet("QR Redirects")
-    sheet.append_row([short, dest])
+    save_redirect(short, dest)
     return redirect('/dashboard')
 
 @app.route('/edit', methods=['POST'])
 def edit():
     short = request.form['short_id']
     new_url = request.form['new_destination']
-    sheet = get_sheet("QR Redirects")
-    records = sheet.get_all_records()
-    for i, row in enumerate(records):
-        if row["Short Code"] == short:
-            sheet.update_cell(i + 2, 2, new_url)
-            break
+    update_redirect(short, new_url)
     return redirect('/dashboard')
 
 @app.route('/delete/<short_id>', methods=['POST'])
 def delete(short_id):
-    sheet = get_sheet("QR Redirects")
-    records = sheet.get_all_records()
-    for i, row in enumerate(records):
-        if row["Short Code"] == short_id:
-            sheet.delete_rows(i + 2)
-            break
+    delete_redirect(short_id)
     return redirect('/dashboard')
+
+@app.route('/export-csv')
+def export_csv():
+    sheet = get_sheet("QR Scan Archive")
+    rows = sheet.get_all_values()
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerows(rows)
+    output.seek(0)
+    return send_file(io.BytesIO(output.getvalue().encode()), mimetype='text/csv', as_attachment=True, download_name='qr-logs.csv')
 
 @app.route('/view-qr/<short_id>')
 def view_qr(short_id):
@@ -134,24 +133,6 @@ def view_qr(short_id):
     buf.seek(0)
     return send_file(buf, mimetype='image/png')
 
-@app.route('/export-csv')
-def export_csv():
-    logs = load_logs()
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(['Short Code', 'Timestamp', 'IP', 'City', 'Country', 'User Agent'])
-    for row in logs:
-        writer.writerow([
-            row.get('Short Code', ''),
-            row.get('Timestamp', ''),
-            row.get('IP', ''),
-            row.get('City', ''),
-            row.get('Country', ''),
-            row.get('User Agent', '')
-        ])
-    output.seek(0)
-    return send_file(io.BytesIO(output.getvalue().encode()), mimetype='text/csv', as_attachment=True, download_name='qr-logs.csv')
-
-# === Run ===
+# === RUN ===
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(debug=True)
