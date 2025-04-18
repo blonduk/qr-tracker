@@ -2,28 +2,79 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>QR Tracker Dashboard</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard - QR Tracker</title>
   <link rel="stylesheet" href="/static/style.css">
+  <style>
+    .header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 2rem;
+      border-bottom: 1px solid #444;
+    }
+    .logout-form {
+      margin: 0;
+    }
+    .logout-form button {
+      background-color: #ff0044;
+      border: none;
+      padding: 0.5rem 1rem;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 3px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 2rem;
+    }
+    th, td {
+      border: 1px solid #555;
+      padding: 0.6rem;
+      text-align: left;
+    }
+    th {
+      background-color: #222;
+    }
+    .qr-thumb {
+      width: 80px;
+      height: 80px;
+      object-fit: contain;
+      background: white;
+      padding: 4px;
+      border: 1px solid #555;
+    }
+    form.inline-form {
+      display: inline;
+    }
+    .add-form {
+      margin-top: 2rem;
+    }
+    .add-form input[type="text"] {
+      padding: 0.5rem;
+      margin-right: 1rem;
+    }
+    .add-form button {
+      padding: 0.5rem 1rem;
+    }
+  </style>
 </head>
 <body>
 
-  <button onclick="toggleDarkMode()">🌓</button>
-
   <div class="header-bar">
-    <h1>Welcome, {{ user }}</h1>
-    <form action="/logout" method="get">
+    <h1>QR Tracker Dashboard - {{ user }}</h1>
+    <form action="/logout" method="GET" class="logout-form">
       <button type="submit">Logout</button>
     </form>
   </div>
 
-  <form action="/add" method="POST">
+  <form class="add-form" action="/add" method="POST">
     <input type="text" name="short_id" placeholder="Short Code" required>
     <input type="text" name="destination" placeholder="Destination URL" required>
-    <button type="submit">Add New Redirect</button>
+    <button type="submit">Add Redirect</button>
   </form>
 
-  <h2>Scan Stats</h2>
   <table>
     <thead>
       <tr>
@@ -31,7 +82,7 @@
         <th>Destination</th>
         <th>Scans</th>
         <th>QR</th>
-        <th>Copy Link</th>
+        <th>Copy</th>
         <th>Edit</th>
         <th>Delete</th>
       </tr>
@@ -47,19 +98,17 @@
             <img src="/view-qr/{{ row[0] }}" class="qr-thumb">
           </a>
         </td>
+        <td><button onclick="copyToClipboard('{{ request.host_url }}track?id={{ row[0] }}')">Copy</button></td>
         <td>
-          <button onclick="copyToClipboard('{{ request.host_url }}track?id={{ row[0] }}')">Copy</button>
-        </td>
-        <td>
-          <form action="/edit" method="POST">
+          <form class="inline-form" action="/edit" method="POST">
             <input type="hidden" name="short_id" value="{{ row[0] }}">
             <input type="text" name="new_destination" placeholder="New URL">
             <button type="submit">Update</button>
           </form>
         </td>
         <td>
-          <form action="/delete/{{ row[0] }}" method="POST">
-            <button onclick="return confirm('Delete this code?')" type="submit">Delete</button>
+          <form class="inline-form" action="/delete/{{ row[0] }}" method="POST">
+            <button type="submit" onclick="return confirm('Are you sure?')">Delete</button>
           </form>
         </td>
       </tr>
@@ -67,13 +116,9 @@
     </tbody>
   </table>
 
-  <a href="/export-csv" class="csv-link">Download Scan Logs (CSV)</a>
+  <a href="/export-csv" target="_blank" style="color: #00ffcc;">📥 Download Logs (CSV)</a>
 
   <script>
-    function toggleDarkMode() {
-      document.body.classList.toggle("dark-mode");
-    }
-
     function copyToClipboard(text) {
       navigator.clipboard.writeText(text).then(() => {
         alert("Copied to clipboard!");
