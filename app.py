@@ -1,12 +1,18 @@
-from flask import Flask, redirect, request, render_template, send_file
+from flask import Flask, request, redirect, render_template, session, send_file, url_for
 import qrcode
 import io
-import csv
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 
 app = Flask(__name__)
+app.secret_key = "your_secret_key_here"  # Replace with something strong
+
+# Users
+USERS = {
+    "Laurence2k": "qrtracker69",
+    "Jack": "artoneggs"
+}
 
 # === GOOGLE SHEETS SETUP ===
 def get_sheet(sheet_name):
@@ -16,123 +22,136 @@ def get_sheet(sheet_name):
     client = gspread.authorize(creds)
     return client.open(sheet_name).sheet1
 
-def load_redirects():
-    sheet = get_sheet("QR Redirects")
-    data = sheet.get_all_records()
-    return {row['Short Code']: row['Destination'] for row in data if row.get('Short Code') and row.get('Destination')}
+# === LOGIN ===
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        user = request.form['username']
+        pw = request.form['password']
+        if USERS.get(user) == pw:
+            session['user'] = user
+            return redirect('/dashboard')
+        else:
+            return "Invalid credentials", 401
+    return render_template("login.html")
 
-def save_redirect(short_code, destination):
-    sheet = get_sheet("QR Redirects")
-    sheet.append_row([short_code, destination])
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect('/login')
 
-def update_redirect(short_code, new_dest):
-    sheet = get_sheet("QR Redirects")
-    data = sheet.get_all_records()
-    for idx, row in enumerate(data, start=2):  # header is row 1
-        if row['Short Code'] == short_code:
-            sheet.update_cell(idx, 2, new_dest)
-
-def delete_redirect(short_code):
-    sheet = get_sheet("QR Redirects")
-    data = sheet.get_all_records()
-    for idx, row in enumerate(data, start=2):
-        if row['Short Code'] == short_code:
-            sheet.delete_rows(idx)
-            break
-
-def append_scan(short_code, ip, city, country, ua):
-    sheet = get_sheet("QR Scan Archive")
-    timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-    sheet.append_row([short_code, timestamp, ip, city, country, ua])
-
-def count_scans():
-    sheet = get_sheet("QR Scan Archive")
-    rows = sheet.get_all_records()
-    stats = {}
-    for row in rows:
-        sid = row.get("Short Code")
-        if sid:
-            stats[sid] = stats.get(sid, 0) + 1
-    return stats
-
-# === ROUTES ===
-@app.route('/')
-def home():
-    return redirect('/dashboard')
-
+# === TRACK ===
 @app.route('/track')
 def track():
     short_id = request.args.get('id')
-    if not short_id:
-        return "Missing ID", 400
+    user = request.args.get('user')
+    if not short_id or not user:
+        return "Missing ID or user", 400
 
-    ip = request.remote_addr
     ua = request.headers.get('User-Agent', '')[:250]
-    geo = {}
+    ip = request.remote_addr
+    timestamp = datetime.utcnow().isoformat()
+
+    # Geolocation fallback (null for now)
+    city = ""
+    country = ""
+
     try:
-        geo = requests.get(f"http://ip-api.com/json/{ip}").json()
-    except:
-        pass
+        sheet = get_sheet("QR Redirects")
+        dest = None
+        for row in sheet.get_all_records():
+            if row['User'] == user and row['Short Code'] == short_id:
+                dest = row['Destination']
+                break
+        if not dest:
+            return "Code not found", 404
+    except Exception as e:
+        print("[ERROR]", e)
+        return "Error", 500
 
-    city = geo.get("city", "")
-    country = geo.get("country", "")
+    try:
+        log_sheet = get_sheet("QR Scan Archive")
+        log_sheet.append_row([user, short_id, timestamp, ip, city, country, ua])
+    except Exception as e:
+        print("[LOG ERROR]", e)
 
-    redirects = load_redirects()
-    dest = redirects.get(short_id)
-    append_scan(short_id, ip, city, country, ua)
+    return redirect(dest)
 
-    if dest:
-        return redirect(dest)
-    else:
-        return "Invalid code", 404
-
+# === DASHBOARD ===
 @app.route('/dashboard')
 def dashboard():
-    redirects = load_redirects()
-    scans = count_scans()
-    stats = []
-    for code, url in redirects.items():
-        stats.append((code, url, scans.get(code, 0)))
-    return render_template("dashboard.html", stats=stats)
+    if 'user' not in session:
+        return redirect('/login')
+    user = session['user']
 
+    try:
+        sheet = get_sheet("QR Redirects")
+        stats = [row for row in sheet.get_all_records() if row['User'] == user]
+    except Exception as e:
+        print("[DASH ERROR]", e)
+        stats = []
+
+    try:
+        logs = get_sheet("QR Scan Archive").get_all_records()
+        scans = {row['Short Code']: 0 for row in stats}
+        for row in logs:
+            if row['User'] == user and row['Short Code'] in scans:
+                scans[row['Short Code']] += 1
+    except Exception as e:
+        print("[SCAN COUNT ERROR]", e)
+        scans = {}
+
+    return render_template("dashboard.html", stats=stats, scans=scans, user=user)
+
+# === ADD CODE ===
 @app.route('/add', methods=['POST'])
 def add():
+    if 'user' not in session:
+        return redirect('/login')
+    user = session['user']
     short = request.form['short_id'].strip()
     dest = request.form['destination'].strip()
-    save_redirect(short, dest)
+    try:
+        sheet = get_sheet("QR Redirects")
+        sheet.append_row([user, short, dest])
+    except Exception as e:
+        print("[ADD ERROR]", e)
     return redirect('/dashboard')
 
-@app.route('/edit', methods=['POST'])
-def edit():
-    short = request.form['short_id']
-    new_url = request.form['new_destination']
-    update_redirect(short, new_url)
-    return redirect('/dashboard')
-
+# === DELETE CODE ===
 @app.route('/delete/<short_id>', methods=['POST'])
 def delete(short_id):
-    delete_redirect(short_id)
+    if 'user' not in session:
+        return redirect('/login')
+    user = session['user']
+    try:
+        sheet = get_sheet("QR Redirects")
+        rows = sheet.get_all_records()
+        for i, row in enumerate(rows, start=2):
+            if row['User'] == user and row['Short Code'] == short_id:
+                sheet.delete_rows(i)
+                break
+    except Exception as e:
+        print("[DELETE ERROR]", e)
     return redirect('/dashboard')
 
-@app.route('/export-csv')
-def export_csv():
-    sheet = get_sheet("QR Scan Archive")
-    rows = sheet.get_all_values()
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerows(rows)
-    output.seek(0)
-    return send_file(io.BytesIO(output.getvalue().encode()), mimetype='text/csv', as_attachment=True, download_name='qr-logs.csv')
-
+# === QR VIEW ===
 @app.route('/view-qr/<short_id>')
 def view_qr(short_id):
-    url = f"{request.host_url}track?id={short_id}"
+    if 'user' not in session:
+        return redirect('/login')
+    user = session['user']
+    url = f"{request.host_url}track?id={short_id}&user={user}"
     img = qrcode.make(url)
     buf = io.BytesIO()
     img.save(buf)
     buf.seek(0)
     return send_file(buf, mimetype='image/png')
 
-# === RUN ===
+# === HOME ===
+@app.route('/')
+def home():
+    return redirect('/dashboard')
+
 if __name__ == '__main__':
     app.run(debug=True)
