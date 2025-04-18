@@ -1,1 +1,85 @@
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background-color: #0e0e0e;
+  color: #e0e0e0;
+  padding: 2rem;
+  margin: 0;
+}
+
+a {
+  color: #ff00cc;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+button {
+  background-color: #ff00cc;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: background-color 0.3s ease;
+}
+
+button:hover {
+  background-color: #e600b8;
+}
+
+input[type="text"], input[type="password"] {
+  padding: 0.5rem;
+  border: 1px solid #555;
+  background-color: #1e1e1e;
+  color: white;
+  border-radius: 3px;
+  margin-right: 0.5rem;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 2rem;
+}
+
+th, td {
+  border: 1px solid #333;
+  padding: 0.6rem;
+  text-align: left;
+}
+
+th {
+  background-color: #111;
+}
+
+.qr-thumb {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  border: 1px solid #555;
+  background: white;
+  padding: 4px;
+}
+
+.glitch-header {
+  font-size: 2.2rem;
+  color: #ff00cc;
+  text-shadow: 1px 0 #0ff, -1px 0 #0ff;
+  margin-bottom: 1rem;
+  animation: glitch 1.5s infinite alternate;
+}
+
+@keyframes glitch {
+  0% { text-shadow: 2px 0 #0ff, -2px 0 #f0f; }
+  20% { text-shadow: -1px -1px #0ff, 1px 1px #f0f; }
+  40% { text-shadow: 1px 2px #0ff, -1px -2px #f0f; }
+  60% { text-shadow: -2px 1px #0ff, 2px -1px #f0f; }
+  100% { text-shadow: 1px 0 #0ff, -1px 0 #f0f; }
+}
+
+form {
+  margin-bottom: 2rem;
+}
 
