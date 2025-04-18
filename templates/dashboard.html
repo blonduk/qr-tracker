@@ -4,27 +4,29 @@
   <meta charset="UTF-8">
   <title>Glitch Link Dashboard</title>
   <link rel="stylesheet" href="/static/style.css">
+  <link rel="icon" type="image/png" href="/static/images/favicon.png">
 </head>
 <body>
-  <header>
-    <h1>Glitch Link</h1>
-    <p class="subtitle">QR Code Generator and Tracker</p>
-    <nav>
-      <span>Welcome, {{ user }}</span>
-      <a href="/logout" class="logout-btn">Logout</a>
-    </nav>
-  </header>
+  <div class="container">
+    <header>
+      <h1>Glitch Link</h1>
+      <p class="subtitle">QR Code Generator and Tracker</p>
+      <div class="top-bar">
+        <span class="welcome">Logged in as: <strong>{{ user }}</strong></span>
+        <a href="/logout" class="logout-button">Logout</a>
+      </div>
+    </header>
 
-  <main>
     <section class="form-section">
-      <form action="/add" method="POST">
+      <h2>Create New QR Redirect</h2>
+      <form action="/add" method="POST" class="redirect-form">
         <input type="text" name="short_id" placeholder="Short Code" required>
         <input type="text" name="destination" placeholder="Destination URL" required>
-        <button type="submit">➕ Add</button>
+        <button type="submit">Add</button>
       </form>
     </section>
 
-    <section class="table-section">
+    <section class="stats-section">
       <h2>Your QR Codes</h2>
       <table>
         <thead>
@@ -32,11 +34,10 @@
             <th>Short Code</th>
             <th>Destination</th>
             <th>Scans</th>
-            <th>QR</th>
-            <th>Copy</th>
+            <th>QR Code</th>
+            <th>Copy Link</th>
             <th>Edit</th>
             <th>Delete</th>
-            <th>Download</th>
           </tr>
         </thead>
         <tbody>
@@ -47,41 +48,37 @@
             <td>{{ row[2] }}</td>
             <td>
               <a href="/view-qr/{{ row[0] }}" target="_blank">
-                <img src="/view-qr/{{ row[0] }}" class="qr-thumb" alt="QR Code">
+                <img src="/view-qr/{{ row[0] }}" class="qr-thumb">
               </a>
             </td>
             <td>
-              <button onclick="copyToClipboard('{{ request.host_url }}track?id={{ row[0] }}')">📋</button>
+              <button onclick="copyToClipboard('{{ request.host_url }}track?id={{ row[0] }}')">Copy</button>
             </td>
             <td>
-              <form action="/edit" method="POST">
+              <form action="/edit" method="POST" class="inline-form">
                 <input type="hidden" name="short_id" value="{{ row[0] }}">
                 <input type="text" name="new_destination" placeholder="New URL">
-                <button type="submit">💾</button>
+                <button type="submit">Update</button>
               </form>
             </td>
             <td>
-              <form action="/delete/{{ row[0] }}" method="POST">
-                <button type="submit" onclick="return confirm('Delete this QR?')">🗑️</button>
+              <form action="/delete/{{ row[0] }}" method="POST" class="inline-form">
+                <button type="submit" onclick="return confirm('Are you sure?')">Delete</button>
               </form>
-            </td>
-            <td>
-              <a href="/download-qr/{{ row[0] }}.png" download>PNG</a> |
-              <a href="/download-qr/{{ row[0] }}.svg" download>SVG</a>
             </td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
-    </section>
 
-    <section class="csv-export">
-      <a href="/export-csv" class="csv-btn">⬇️ Export Logs (CSV)</a>
+      <div class="export-links">
+        <a href="/export-csv" class="export-btn">⬇ Download Scan Logs (CSV)</a>
+      </div>
     </section>
-  </main>
+  </div>
 
   <footer>
-    <p>&copy; 2025 Glitch Link. All rights reserved.</p>
+    &copy; {{ now().year }} Glitch Link. All rights reserved.
   </footer>
 
   <script>
