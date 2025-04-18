@@ -2,41 +2,25 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Login - QR Tracker</title>
+  <title>Login | Glitch Link</title>
   <link rel="stylesheet" href="/static/style.css">
-  <style>
-    .login-container {
-      max-width: 400px;
-      margin: 6rem auto;
-      padding: 2rem;
-      background-color: #111;
-      border: 2px solid #ff00aa;
-      box-shadow: 0 0 10px #ff00aa44;
-    }
-    h1 {
-      text-align: center;
-      color: #00ffcc;
-    }
-    .error {
-      color: #ff0055;
-      margin-bottom: 1rem;
-      text-align: center;
-    }
-  </style>
+  <link rel="icon" type="image/png" href="/static/images/favicon.png">
 </head>
 <body>
+  <div class="container">
+    <h1 class="glitch-title">Glitch Link</h1>
+    <p class="subtitle">QR Code Generator and Tracker</p>
 
-  <div class="login-container">
-    <h1>Welcome Back</h1>
-    {% if error %}
-      <div class="error">{{ error }}</div>
-    {% endif %}
-    <form method="POST" action="/login">
+    <form method="POST" class="login-form">
+      {% if error %}
+        <p class="error">{{ error }}</p>
+      {% endif %}
       <input type="text" name="username" placeholder="Username" required><br>
-      <input type="text" name="password" placeholder="Password" required><br><br>
+      <input type="password" name="password" placeholder="Password" required><br>
       <button type="submit">Login</button>
     </form>
-  </div>
 
+    <footer>&copy; 2025 Glitch Link</footer>
+  </div>
 </body>
 </html>
