@@ -8,13 +8,10 @@
   <link rel="icon" href="{{ url_for('static', filename='images/404_glitch.png') }}">
 </head>
 
-
 <body>
-    <header>
-        <h1 class="glitch" data-text="Glitch Link">Glitch Link</h1>
-        <p class="subtitle">QR Code Generator and Tracker</p>
-        <a href="/logout" class="btn logout-btn">Logout</a>
-    </header>
+    <div class="glitch-title">Glitch Link</div>
+    <h2 class="subtitle">QR Code Generator and Tracker</h2>
+    <a href="/logout" class="btn logout-btn">Logout</a>
 
     <main class="centered-content">
         <h2>Welcome, {{ user }}!</h2>
