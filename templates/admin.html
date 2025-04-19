@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Panel - Glitch Link</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="icon" href="{{ url_for('static', filename='images/favicon.png') }}">
+</head>
+<body>
+  <div class="center-wrap">
+    <div class="glitch-title">Glitch Link</div>
+    <h2 class="subtitle">Admin Panel</h2>
+    <a href="/dashboard" class="btn link-white">← Back to Dashboard</a>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Short Codes</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for name, codes in users.items() %}
+          <tr>
+            <td>{{ name }}</td>
+            <td>{{ codes | join(', ') }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <footer>
+    <p>&copy; {{ session['user'] }} | Glitch Link | {{ now.year if now else '2025' }}</p>
+  </footer>
+</body>
+</html>
