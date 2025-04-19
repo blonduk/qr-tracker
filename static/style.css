@@ -1,130 +1,188 @@
+/* === Base Reset === */
 body {
-    background-color: #0f0f0f;
-    color: #f8f8f2;
-    font-family: 'Courier New', monospace;
+    background-color: #0a0a0a;
+    color: #e0e0e0;
+    font-family: 'Courier New', Courier, monospace;
     margin: 0;
     padding: 0;
-    display: flex;
-    justify-content: center;
+    line-height: 1.6;
 }
 
+/* === Layout === */
 .container {
     max-width: 960px;
-    margin-top: 40px;
+    margin: 40px auto;
     padding: 20px;
-    background-color: #1e1e1e;
+    background: #111;
+    border: 2px solid #3f3f3f;
     border-radius: 12px;
-    box-shadow: 0 0 15px #00ffe0;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
 }
 
 h1, h2 {
     text-align: center;
-    color: #00ffe0;
+    color: #00ffff;
+    text-shadow: 0 0 5px #00ffff;
 }
 
+h1 {
+    margin-bottom: 10px;
+}
+
+h2 {
+    font-size: 1.2rem;
+    color: #aaa;
+    margin-top: 0;
+    margin-bottom: 30px;
+}
+
+/* === Table === */
 table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 20px;
-    background-color: #2e2e2e;
 }
 
 th, td {
     padding: 12px;
-    border-bottom: 1px solid #444;
+    border-bottom: 1px solid #333;
     text-align: center;
 }
 
 th {
-    background-color: #3c3c3c;
-    color: #00ffe0;
+    background-color: #111;
+    color: #00ffff;
+    font-weight: bold;
+}
+
+td {
+    background-color: #1c1c1c;
 }
 
 tr:hover {
-    background-color: #444;
+    background-color: #292929;
 }
 
-input[type="text"],
-input[type="password"] {
-    padding: 10px;
-    width: 200px;
-    margin: 5px;
-    background: #000;
-    color: #00ffe0;
-    border: 1px solid #00ffe0;
-    border-radius: 4px;
-}
-
-button {
-    background-color: #00ffe0;
+/* === Buttons === */
+button, .button {
+    padding: 8px 16px;
+    background-color: #00ffff;
     color: #000;
+    font-weight: bold;
     border: none;
-    padding: 10px 18px;
-    margin: 5px;
-    border-radius: 4px;
+    border-radius: 6px;
     cursor: pointer;
-    font-weight: bold;
-}
-
-button:hover,
-a.button:hover {
-    background-color: #00bfae;
-}
-
-a {
-    color: #00ffe0;
     text-decoration: none;
-    font-weight: bold;
+    margin: 2px;
 }
 
-a:hover {
+button:hover, .button:hover {
+    background-color: #00bbbb;
+}
+
+/* === Form Fields === */
+input[type="text"], input[type="url"] {
+    padding: 10px;
+    width: calc(100% - 24px);
+    border: 1px solid #333;
+    border-radius: 6px;
+    background-color: #1a1a1a;
+    color: #fff;
+    margin-bottom: 10px;
+}
+
+/* === Footer === */
+footer {
+    text-align: center;
+    margin-top: 60px;
+    font-size: 0.9em;
+    color: #666;
+}
+
+/* === QR Thumbnail === */
+.qr-thumb {
+    width: 100px;
+    height: 100px;
+    object-fit: contain;
+    border: 2px solid #fff;
+    border-radius: 8px;
+    background-color: #000;
+}
+
+/* === QR Table Button Cells === */
+.qr-actions form {
+    display: inline;
+}
+
+/* === Login Box === */
+.login-box {
+    background-color: #111;
+    max-width: 400px;
+    margin: 80px auto;
+    padding: 30px;
+    border: 2px solid #3f3f3f;
+    border-radius: 12px;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+}
+
+.login-box h2 {
+    color: #00ffff;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.login-box input {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 15px;
+    background-color: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 6px;
+    color: #fff;
+}
+
+/* === Glitch Header Logo === */
+.logo-glitch {
+    font-size: 2rem;
+    text-align: center;
+    margin-top: 20px;
+    color: #00ffff;
+    text-shadow: 1px 0 red, -1px 0 blue;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+/* === Logout Button (Top Right) === */
+.logout-link {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    color: #00ffff;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+.logout-link:hover {
     text-decoration: underline;
 }
 
-.inline-form {
-    display: inline-block;
-}
-
-form.glitch-form {
-    text-align: center;
+/* === Center Add Form === */
+.add-form {
+    display: flex;
+    gap: 10px;
     margin-top: 20px;
+    justify-content: center;
+    flex-wrap: wrap;
 }
 
-.button-row {
-    text-align: center;
-    margin-top: 30px;
+.add-form input[type="text"],
+.add-form input[type="url"] {
+    flex: 1 1 40%;
 }
 
-footer {
-    text-align: center;
-    margin-top: 30px;
-    font-size: 0.85em;
-    color: #888;
-}
-
-.login-box {
-    margin-top: 80px;
-    padding: 30px;
-    background: #1a1a1a;
-    border: 2px solid #00ffe0;
-    border-radius: 10px;
-    box-shadow: 0 0 20px #00ffe0;
-    text-align: center;
-}
-
-.login-box .glitch-title {
-    font-size: 32px;
-    color: #00ffe0;
-    margin-bottom: 10px;
-}
-
-.login-box .subtitle {
-    font-size: 14px;
-    color: #aaa;
-    margin-bottom: 20px;
-}
-
-.error {
-    color: red;
-    margin-bottom: 10px;
+/* === Download Buttons Styling === */
+.qr-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    flex-wrap: wrap;
 }
