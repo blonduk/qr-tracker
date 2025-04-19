@@ -2,25 +2,27 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Login | Glitch Link</title>
-    <link rel="stylesheet" href="/static/style.css">
-    <link rel="icon" href="/static/images/404_glitch.png" type="image/png">
+    <title>Glitch Link | Login</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/404_glitch.png') }}">
 </head>
 <body>
-    <div class="login-box">
-        <h1 class="glitch-title">Glitch Link</h1>
-        <p class="subtitle">QR Code Generator and Tracker</p>
-        {% if error %}
-            <p class="error">{{ error }}</p>
-        {% endif %}
+    <div class="glitch-title">Glitch Link</div>
+    <h2 class="subtitle">QR Code Generator and Tracker</h2>
+
+    <div class="login-container">
         <form method="POST">
             <input type="text" name="username" placeholder="Username" required autofocus>
             <input type="password" name="password" placeholder="Password" required>
-            <button type="submit">Login</button>
+            <button type="submit">Log In</button>
         </form>
-        <footer>
-            <p>&copy; Glitch Link</p>
-        </footer>
+        {% if error %}
+            <p class="error">{{ error }}</p>
+        {% endif %}
     </div>
+
+    <footer>
+        <p>&copy; Glitch Link | {{ now.year if now else '2025' }}</p>
+    </footer>
 </body>
 </html>
