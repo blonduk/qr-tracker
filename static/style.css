@@ -1,136 +1,101 @@
-/* ==== BASE STYLES ==== */
 body {
-    background-color: #0e0e0e;
-    color: #f0f0f0;
     font-family: 'Courier New', monospace;
+    background-color: #111;
+    color: #fff;
     margin: 0;
     padding: 0;
     text-align: center;
 }
 
-a {
-    color: #3399ff;
-    text-decoration: none;
-}
-
-a:visited {
-    color: #3399ff;
-}
-
-button a {
-    color: white;
-    text-decoration: none;
-}
-
-/* ==== HEADER ==== */
-h1 {
-    font-size: 3em;
-    margin-top: 20px;
-    color: #00ffcc;
+.glitch {
+    font-size: 2.5rem;
+    color: #fff;
     position: relative;
-    display: inline-block;
-    text-shadow: 0 0 2px #00ffcc;
-    animation: glitch 1s infinite;
 }
 
-@keyframes glitch {
-    0% { text-shadow: 1px 0 red, -1px 0 cyan; }
-    20% { text-shadow: -2px 2px red, 2px -2px cyan; }
-    40% { text-shadow: 2px -1px red, -2px 1px cyan; }
-    60% { text-shadow: -1px -1px red, 1px 1px cyan; }
-    80% { text-shadow: 1px 2px red, -1px -2px cyan; }
-    100% { text-shadow: 0 0 2px #00ffcc; }
+.subtitle {
+    font-size: 1.2rem;
+    color: #aaa;
+    margin-bottom: 1rem;
 }
 
-h2 {
-    font-weight: normal;
-    color: #f0f0f0;
-    margin-top: -10px;
-    margin-bottom: 20px;
-}
-
-/* ==== CONTAINERS ==== */
-.container {
-    width: 90%;
+.centered-content {
     max-width: 1000px;
     margin: 0 auto;
-    text-align: left;
+    padding: 2rem;
 }
 
-/* ==== TABLE ==== */
+form {
+    margin: 1rem auto;
+}
+
+.qr-thumb {
+    height: 60px;
+    width: 60px;
+    image-rendering: pixelated;
+}
+
+input[type="text"] {
+    padding: 0.5rem;
+    width: 200px;
+    margin: 0.5rem;
+    border-radius: 4px;
+    border: 1px solid #444;
+}
+
+button, .btn {
+    padding: 0.5rem 1rem;
+    background-color: #00f;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.btn.link-white {
+    color: white !important;
+}
+
 table {
     width: 100%;
+    margin-top: 2rem;
     border-collapse: collapse;
-    margin: 20px 0;
+    background: #222;
 }
 
 th, td {
-    padding: 12px 8px;
-    border-bottom: 1px solid #333;
-    text-align: left;
-    vertical-align: middle;
-}
-
-tr:hover {
-    background-color: #1c1c1c;
-}
-
-th {
-    background-color: #222;
-    color: #fff;
-}
-
-/* ==== BUTTONS ==== */
-button, .btn {
-    background-color: #3399ff;
-    border: none;
-    color: white;
-    padding: 8px 14px;
-    margin: 2px;
-    cursor: pointer;
-    border-radius: 4px;
-    font-size: 0.9em;
-    transition: background-color 0.2s ease-in-out;
-}
-
-button:hover, .btn:hover {
-    background-color: #007acc;
-}
-
-.logout {
-    position: absolute;
-    top: 20px;
-    right: 30px;
-}
-
-/* ==== FORM ==== */
-form {
-    margin: 20px 0;
-}
-
-input[type="text"],
-input[type="url"] {
-    padding: 6px;
-    width: 200px;
-    margin-right: 10px;
-    border: 1px solid #555;
-    border-radius: 4px;
-    background-color: #1e1e1e;
-    color: #fff;
-}
-
-/* ==== FOOTER ==== */
-footer {
-    margin-top: 40px;
-    font-size: 0.9em;
-    color: #666;
-}
-
-/* ==== QR THUMBNAILS ==== */
-.qr-thumb {
-    width: 80px;
-    height: 80px;
+    padding: 0.8rem;
     border: 1px solid #444;
-    background-color: #fff;
-    padding: 3px;
+    text-align: center;
+}
+
+a {
+    color: #00f;
+}
+
+a:visited {
+    color: #00f;
+}
+
+footer {
+    margin-top: 2rem;
+    font-size: 0.9rem;
+    color: #888;
+}
+
+.logout-btn {
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    padding: 0.5rem 1rem;
+    background: #222;
+    color: white;
+    border: 1px solid white;
+    border-radius: 4px;
+    text-decoration: none;
+}
+
+.logout-btn:hover {
+    background: #444;
 }
