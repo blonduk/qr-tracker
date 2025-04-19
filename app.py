@@ -1,3 +1,4 @@
+
 from flask import Flask, request, redirect, render_template, session, send_file, abort
 import qrcode
 import io
@@ -76,16 +77,16 @@ def qr_detail(short_id):
     if 'user' not in session:
         return redirect('/login')
 
-    redirects = load_redirects()
-    logs = load_logs()
+    user = session['user']
+    redirect_rows = load_redirects()
+    qr = next((r for r in redirect_rows if r['Short Code'] == short_id and r['User'] == user), None)
+    if not qr:
+        return "QR not found", 404
 
-    qr_entry = next((r for r in redirects if r['Short Code'] == short_id and r['User'] == session['user']), None)
-    if not qr_entry:
-        abort(404)
+    logs = [l for l in load_logs() if l['Short Code'] == short_id]
 
-    scan_logs = [log for log in logs if log['Short Code'] == short_id]
+    return render_template("qr-detail.html", qr=qr, logs=logs, now=datetime.utcnow())
 
-    return render_template('qr_detail.html', qr=qr_entry, logs=scan_logs)
 
 
 @app.route('/add', methods=['POST'])
