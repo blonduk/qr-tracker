@@ -12,6 +12,10 @@
   <div class="glitch-title">Glitch Link</div>
   <h2 class="subtitle">QR Code Generator and Tracker</h2>
   <a href="/logout" class="btn logout-btn">Logout</a>
+{% if user == 'Laurence2k' %}
+<a href="/admin" class="btn link-white">Admin Panel</a>
+{% endif %}
+
 
   <main class="centered-content">
     <h2>Welcome, {{ user }}!</h2>
