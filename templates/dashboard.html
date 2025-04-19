@@ -1,78 +1,92 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Glitch Link - Dashboard</title>
-    <link rel="stylesheet" href="/static/style.css">
-    <link rel="icon" type="image/png" href="/static/images/404_glitch.png">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GlitchLink Dashboard</title>
+  <link rel="stylesheet" href="/static/style.css" />
 </head>
-<body>
-    <header>
-        <h1>Glitch Link</h1>
-        <p class="subtitle">QR Code Generator and Tracker</p>
-        <div class="nav-bar">
-            <span class="user">Welcome, {{ user }}</span>
-            <a href="/logout" class="btn small">Logout</a>
-        </div>
-    </header>
+<body class="glitch-theme">
+  <header class="topbar">
+    <h1 class="logo">Glitch<span>Link</span></h1>
+    <p class="subtitle">QR Code Generator and Tracker</p>
+    <a href="/logout" class="logout-btn">Logout</a>
+  </header>
 
-    <main>
-        <section class="panel">
-            <h2>Your QR Codes</h2>
-            <form action="/add" method="POST" class="add-form">
-                <input type="text" name="short_id" placeholder="Short Code" required>
-                <input type="text" name="destination" placeholder="Destination URL" required>
-                <button type="submit" class="btn">Add QR</button>
-            </form>
+  <main>
+    <section class="add-form">
+      <h2>Add a New QR Link</h2>
+      <form action="/add" method="POST">
+        <input type="text" name="short_id" placeholder="Short Code" required />
+        <input type="text" name="destination" placeholder="Destination URL" required />
+        <button type="submit">➕ Add</button>
+      </form>
+    </section>
 
-            <table>
-                <thead>
-                    <tr>
-                        <th>Short Code</th>
-                        <th>Destination</th>
-                        <th>Scans</th>
-                        <th>QR</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for short_id, destination, count in stats %}
-                    <tr>
-                        <td>{{ short_id }}</td>
-                        <td><a href="{{ destination }}" target="_blank">{{ destination }}</a></td>
-                        <td>{{ count }}</td>
-                        <td>
-                            <a href="/view-qr/{{ short_id }}" target="_blank">
-                                <img src="/view-qr/{{ short_id }}" alt="QR" width="60">
-                            </a>
-                        </td>
-                        <td>
-                            <form action="/edit" method="POST" class="inline-form">
-                                <input type="hidden" name="short_id" value="{{ short_id }}">
-                                <input type="text" name="new_destination" placeholder="New URL" required>
-                                <button type="submit" class="btn small">Edit</button>
-                            </form>
-                            <form action="/delete/{{ short_id }}" method="POST" class="inline-form" onsubmit="return confirm('Delete this code?');">
-                                <button type="submit" class="btn small red">Delete</button>
-                            </form>
-                            <div class="qr-downloads">
-                                <a class="btn small ghost" href="/download-qr/{{ short_id }}.png">PNG</a>
-                                <a class="btn small ghost" href="/download-qr/{{ short_id }}.svg">SVG</a>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+    <section class="qr-table">
+      <h2>Your QR Codes</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Destination</th>
+            <th>Scans</th>
+            <th>QR Preview</th>
+            <th>Copy</th>
+            <th>Edit</th>
+            <th>Delete</th>
+            <th>Download</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in stats %}
+          <tr>
+            <td>{{ row[0] }}</td>
+            <td>{{ row[1] }}</td>
+            <td>{{ row[2] }}</td>
+            <td>
+              <a href="/view-qr/{{ row[0] }}" target="_blank">
+                <img src="/view-qr/{{ row[0] }}" class="qr-thumb" />
+              </a>
+            </td>
+            <td>
+              <button onclick="copyToClipboard('{{ request.host_url }}track?id={{ row[0] }}')">Copy</button>
+            </td>
+            <td>
+              <form action="/edit" method="POST">
+                <input type="hidden" name="short_id" value="{{ row[0] }}">
+                <input type="text" name="new_destination" placeholder="New URL">
+                <button type="submit">✏️</button>
+              </form>
+            </td>
+            <td>
+              <form action="/delete/{{ row[0] }}" method="POST" onsubmit="return confirm('Are you sure?')">
+                <button type="submit">🗑️</button>
+              </form>
+            </td>
+            <td>
+              <a href="/download-qr/{{ row[0] }}.png" class="btn-small">PNG</a>
+              <a href="/download-qr/{{ row[0] }}.svg" class="btn-small">SVG</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
 
-            <div class="download-block">
-                <a class="btn ghost" href="/export-csv">Export Logs (CSV)</a>
-            </div>
-        </section>
-    </main>
+    <a href="/export-csv" class="btn-export">⬇️ Download CSV Log</a>
+  </main>
 
-    <footer>
-        <p>&copy; {{ year }} Glitch Link. Built for chaos and clarity.</p>
-    </footer>
+  <footer>
+    <p>© {{ user }} – GlitchLink 2025</p>
+  </footer>
+
+  <script>
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        alert("Copied to clipboard!");
+      });
+    }
+  </script>
 </body>
 </html>
