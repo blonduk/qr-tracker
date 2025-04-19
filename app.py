@@ -1,4 +1,3 @@
-
 from flask import Flask, request, redirect, render_template, session, send_file, abort
 import qrcode
 import io
@@ -87,7 +86,33 @@ def qr_detail(short_id):
 
     return render_template("qr-detail.html", qr=qr, logs=logs, now=datetime.utcnow())
 
+@app.route('/edit-detail', methods=['POST'])
+def edit_detail():
+    if 'user' not in session:
+        return redirect('/login')
 
+    short = request.form['short_id'].strip()
+    new_url = request.form['new_destination'].strip()
+    sheet = get_sheet("QR Redirects")
+    records = sheet.get_all_records()
+    for i, row in enumerate(records, start=2):
+        if row['Short Code'] == short and row['User'] == session['user']:
+            sheet.update_cell(i, 2, new_url)
+            break
+    return redirect(f'/qr/{short}')
+
+@app.route('/delete-detail/<short_id>', methods=['POST'])
+def delete_detail(short_id):
+    if 'user' not in session:
+        return redirect('/login')
+
+    sheet = get_sheet("QR Redirects")
+    records = sheet.get_all_records()
+    for i, row in enumerate(records, start=2):
+        if row['Short Code'] == short_id and row['User'] == session['user']:
+            sheet.delete_rows(i)
+            break
+    return redirect('/dashboard')
 
 @app.route('/add', methods=['POST'])
 def add():
