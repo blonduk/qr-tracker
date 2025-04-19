@@ -1,167 +1,145 @@
-/* === RESET + BASE === */
 body {
   margin: 0;
   padding: 0;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #0e0e0e;
-  color: #f0f0f0;
-  line-height: 1.6;
-}
-
-/* === HEADER === */
-.glitch-header {
-  background: #111;
-  padding: 2rem;
+  font-family: 'Courier New', monospace;
+  background-color: #0d0d0d;
+  color: #00ffcc;
   text-align: center;
-  border-bottom: 2px solid #444;
 }
 
-.glitch-header h1 {
-  font-size: 2.5rem;
-  color: #00fff9;
-  text-shadow: 0 0 5px #00fff9, 0 0 20px #ff00c8;
-  margin: 0;
+.container {
+  max-width: 1000px;
+  margin: 40px auto;
+  padding: 20px;
+  background: #111;
+  border: 1px solid #00ffcc;
+  box-shadow: 0 0 20px #00ffcc44;
+  border-radius: 8px;
 }
 
-.tagline {
-  font-style: italic;
+header h1 {
+  font-size: 2.8rem;
+  text-transform: uppercase;
+  margin-bottom: 0;
+  color: #00ffff;
+  text-shadow: 0 0 5px #00ffffaa, 0 0 10px #ff00ff88;
+}
+
+.subtitle {
+  margin-top: 0;
+  font-size: 1.1rem;
   color: #ccc;
-  margin-top: 0.5rem;
+  font-style: italic;
 }
 
-nav {
-  margin-top: 1rem;
-}
-
-.logout-btn {
-  background: #ff006f;
-  border: none;
-  color: #fff;
-  padding: 0.4rem 0.8rem;
+.logout-button {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: #ff0066;
+  color: white;
+  padding: 8px 12px;
   text-decoration: none;
-  border-radius: 5px;
-  margin-left: 1rem;
+  border-radius: 4px;
+  font-weight: bold;
+  border: none;
+  box-shadow: 0 0 8px #ff006677;
 }
 
-.logout-btn:hover {
-  background: #ff338c;
+.logout-button:hover {
+  background-color: #cc0052;
 }
 
-/* === CONTAINER === */
-.glitch-container {
-  max-width: 1200px;
-  margin: auto;
-  padding: 2rem;
-}
-
-/* === FORM === */
 .add-form {
   display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 20px 0;
   flex-wrap: wrap;
-  gap: 1rem;
-  margin-bottom: 2rem;
 }
 
-.add-form input[type="text"] {
-  flex: 1;
-  padding: 0.6rem;
+.add-form input[type="text"],
+.add-form button {
+  padding: 8px;
+  font-size: 1rem;
+  border: 1px solid #00ffcc;
+  background-color: #222;
+  color: #00ffcc;
   border-radius: 4px;
-  border: 1px solid #666;
-  background-color: #1a1a1a;
-  color: #fff;
 }
 
 .add-form button {
-  background-color: #00fff9;
+  background-color: #00ffcc;
   color: #000;
-  border: none;
-  padding: 0.6rem 1.2rem;
-  cursor: pointer;
-  border-radius: 4px;
   font-weight: bold;
+  cursor: pointer;
 }
 
 .add-form button:hover {
-  background-color: #0ff;
+  background-color: #00cccc;
 }
 
-/* === TABLE === */
 table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 1rem;
+  margin-top: 30px;
 }
 
 th, td {
-  padding: 0.75rem;
-  border: 1px solid #444;
-  text-align: left;
+  border: 1px solid #00ffcc33;
+  padding: 10px;
+  text-align: center;
 }
 
 th {
-  background-color: #1a1a1a;
-  color: #00fff9;
-}
-
-tr:nth-child(even) {
-  background-color: #1c1c1c;
-}
-
-/* === QR THUMBNAIL + DOWNLOADS === */
-.qr-thumb {
-  width: 100px;
-  height: 100px;
-  background-color: #fff;
-  border-radius: 4px;
-  padding: 4px;
-  object-fit: contain;
-  display: block;
-  margin: auto;
-  box-shadow: 0 0 8px #00fff9;
-}
-
-.qr-downloads {
-  text-align: center;
-  margin-top: 0.3rem;
+  background-color: #111;
+  color: #00ffff;
+  text-transform: uppercase;
   font-size: 0.9rem;
 }
 
-.qr-downloads a {
-  color: #0ff;
-  text-decoration: none;
-  margin: 0 0.3rem;
+td {
+  font-size: 0.95rem;
 }
 
-.qr-downloads a:hover {
-  color: #fff;
+img.qr-thumb {
+  width: 60px;
+  height: 60px;
+  border: 2px solid #00ffcc44;
+  border-radius: 4px;
+}
+
+button, a.download-btn {
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  background-color: #222;
+  color: #00ffcc;
+  border: 1px solid #00ffcc44;
+  border-radius: 4px;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+a.download-btn:hover,
+button:hover {
+  background-color: #00ffcc;
+  color: #000;
+}
+
+footer {
+  margin-top: 40px;
+  color: #888;
+  font-size: 0.9rem;
+}
+
+.download-all {
+  display: inline-block;
+  margin-top: 8px;
+  font-weight: bold;
+  color: #00ffcc;
   text-decoration: underline;
 }
 
-/* === EXPORT LINK === */
-.export-link {
-  margin-top: 2rem;
-  text-align: center;
-}
-
-.export-link a {
-  background: #00fff9;
-  color: #000;
-  padding: 0.5rem 1rem;
-  border-radius: 5px;
-  text-decoration: none;
-  font-weight: bold;
-}
-
-.export-link a:hover {
-  background: #0ff;
-}
-
-/* === FOOTER === */
-footer {
-  text-align: center;
-  padding: 2rem 1rem;
-  font-size: 0.9rem;
-  color: #888;
-  border-top: 2px solid #222;
-  background-color: #111;
+.download-all:hover {
+  color: #00dddd;
 }
