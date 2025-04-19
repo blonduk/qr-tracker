@@ -1,21 +1,22 @@
 from flask import Flask, request, redirect, render_template, session, send_file, abort
 import qrcode
-import qrcode.image.svg
 import io
 import csv
+import svgwrite
+from datetime import datetime
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
-from datetime import datetime
-import os
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key_here'
 
+# User accounts
 USERS = {
     "Laurence2k": "qrtracker69",
     "Jack": "artoneggs"
 }
 
+# Google Sheets setup
 def get_sheet(name):
     scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
     creds_path = '/etc/secrets/google-credentials.json'
@@ -23,6 +24,7 @@ def get_sheet(name):
     client = gspread.authorize(creds)
     return client.open(name).sheet1
 
+# Helpers
 def load_redirects():
     sheet = get_sheet("QR Redirects")
     return sheet.get_all_records()
@@ -69,7 +71,7 @@ def dashboard():
         count = sum(1 for log in logs if log['Short Code'] == sid)
         stats.append((sid, dest, count))
 
-    return render_template('dashboard.html', stats=stats, user=user, year=datetime.now().year)
+    return render_template('dashboard.html', stats=stats, user=user)
 
 @app.route('/add', methods=['POST'])
 def add():
@@ -142,6 +144,7 @@ def view_qr(short_id):
     url = f"{request.host_url}track?id={short_id}"
     img = qrcode.make(url)
     buf = io.BytesIO()
+    img = img.resize((1000, 1000))
     img.save(buf)
     buf.seek(0)
     return send_file(buf, mimetype='image/png')
@@ -149,21 +152,28 @@ def view_qr(short_id):
 @app.route('/download-qr/<short_id>.png')
 def download_png(short_id):
     url = f"{request.host_url}track?id={short_id}"
-    qr = qrcode.make(url)
+    img = qrcode.make(url)
     buf = io.BytesIO()
-    qr.save(buf)
+    img = img.resize((1000, 1000))
+    img.save(buf)
     buf.seek(0)
-    return send_file(buf, mimetype='image/png', as_attachment=True, download_name=f"{short_id}-glitchlink.png")
+    return send_file(buf, mimetype='image/png', as_attachment=True, download_name=f"glitchlink_{short_id}.png")
 
 @app.route('/download-qr/<short_id>.svg')
 def download_svg(short_id):
     url = f"{request.host_url}track?id={short_id}"
-    factory = qrcode.image.svg.SvgImage
-    img = qrcode.make(url, image_factory=factory)
-    buf = io.BytesIO()
-    img.save(buf)
-    buf.seek(0)
-    return send_file(buf, mimetype='image/svg+xml', as_attachment=True, download_name=f"{short_id}-glitchlink.svg")
+    dwg = svgwrite.Drawing(size=("1000px", "1000px"))
+    qr = qrcode.make(url)
+    matrix = qr.get_matrix()
+
+    size = 10
+    for y, row in enumerate(matrix):
+        for x, val in enumerate(row):
+            if val:
+                dwg.add(dwg.rect(insert=(x * size, y * size), size=(size, size), fill='black'))
+
+    buf = io.BytesIO(dwg.tostring().encode())
+    return send_file(buf, mimetype='image/svg+xml', as_attachment=True, download_name=f"glitchlink_{short_id}.svg")
 
 @app.route('/export-csv')
 def export_csv():
@@ -184,7 +194,7 @@ def export_csv():
             row.get('Country', ''), row['User Agent']
         ])
     output.seek(0)
-    return send_file(io.BytesIO(output.getvalue().encode()), mimetype='text/csv', as_attachment=True, download_name=f'{user}_glitchlink_qr_logs.csv')
+    return send_file(io.BytesIO(output.getvalue().encode()), mimetype='text/csv', as_attachment=True, download_name='glitchlink_logs.csv')
 
 @app.errorhandler(404)
 def page_not_found(e):
