@@ -1,64 +1,75 @@
+<!-- templates/dashboard.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Glitch Link Dashboard</title>
-    <link rel="stylesheet" href="/static/style.css">
-    <link rel="icon" href="/static/images/404_glitch.png" type="image/png">
+    <title>Glitch Link - Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
 </head>
 <body>
-    <div class="container">
-        <h1>Welcome, {{ user }} 👾</h1>
-        <h2>Your QR Codes</h2>
+    <div class="glitch-header">
+        <h1 class="glitch" data-text="Glitch Link">Glitch Link</h1>
+        <p class="subtitle">QR Code Generator and Tracker</p>
+        <div class="logout">
+            <form action="/logout" method="get">
+                <button type="submit">Logout</button>
+            </form>
+        </div>
+    </div>
 
-        <form action="/add" method="POST" class="glitch-form">
+    <div class="container">
+        <h2>Welcome, {{ user }}</h2>
+
+        <form action="/add" method="post" class="add-form">
             <input type="text" name="short_id" placeholder="Short Code" required>
             <input type="text" name="destination" placeholder="Destination URL" required>
-            <button type="submit">Add New</button>
+            <button type="submit">Add Redirect</button>
         </form>
 
         <table>
-            <tr>
-                <th>QR</th>
-                <th>Short Code</th>
-                <th>Destination</th>
-                <th>Scans</th>
-                <th>Actions</th>
-            </tr>
-            {% for short_id, destination, count in stats %}
-            <tr>
-                <td>
-                    <a href="/view-qr/{{ short_id }}" target="_blank">
-                        <img src="/view-qr/{{ short_id }}" alt="QR" width="60">
-                    </a>
-                </td>
-                <td>{{ short_id }}</td>
-                <td>{{ destination }}</td>
-                <td>{{ count }}</td>
-                <td>
-                    <form action="/edit" method="POST" class="inline-form">
-                        <input type="hidden" name="short_id" value="{{ short_id }}">
-                        <input type="text" name="new_destination" placeholder="New URL">
-                        <button type="submit">✏️</button>
-                    </form>
-                    <form action="/delete/{{ short_id }}" method="POST" class="inline-form" onsubmit="return confirm('Delete this QR?');">
-                        <button type="submit">🗑️</button>
-                    </form>
-                    <a href="/download-png/{{ short_id }}" title="Download PNG">📥 PNG</a>
-                    <a href="/download-svg/{{ short_id }}" title="Download SVG">📐 SVG</a>
-                </td>
-            </tr>
-            {% endfor %}
+            <thead>
+                <tr>
+                    <th>Short Code</th>
+                    <th>Destination</th>
+                    <th>QR</th>
+                    <th>Scans</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for short_id, dest, count in stats %}
+                <tr>
+                    <td>{{ short_id }}</td>
+                    <td><a href="{{ dest }}" target="_blank">{{ dest }}</a></td>
+                    <td><a href="/view-qr/{{ short_id }}" target="_blank">
+                        <img src="/view-qr/{{ short_id }}" alt="QR" class="qr-thumb">
+                    </a></td>
+                    <td>{{ count }}</td>
+                    <td>
+                        <form action="/edit" method="post" class="inline-form">
+                            <input type="hidden" name="short_id" value="{{ short_id }}">
+                            <input type="text" name="new_destination" placeholder="New URL" required>
+                            <button type="submit">Edit</button>
+                        </form>
+                        <form action="/delete/{{ short_id }}" method="post" class="inline-form" onsubmit="return confirm('Are you sure you want to delete this redirect? This cannot be undone.');">
+                            <button type="submit">Delete</button>
+                        </form>
+                        <a href="/download-png/{{ short_id }}" class="qr-btn">PNG</a>
+                        <a href="/download-svg/{{ short_id }}" class="qr-btn">SVG</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
         </table>
 
-        <div class="button-row">
-            <a href="/export-csv" class="button">📄 Export Logs</a>
-            <a href="/logout" class="button">🚪 Logout</a>
+        <div class="export-links">
+            <a href="/export-csv" class="export-button">Export Logs (CSV)</a>
         </div>
-
-        <footer>
-            <p>&copy; {{ user }} | Glitch Link | {{ now.strftime('%Y') }}</p>
-        </footer>
     </div>
+
+    <footer>
+        <p>&copy; {{ user }} | Glitch Link | {{ now.strftime('%Y') }}</p>
+    </footer>
 </body>
 </html>
