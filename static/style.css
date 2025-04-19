@@ -1,81 +1,167 @@
+/* === RESET + BASE === */
 body {
-  background: #0d0d0d;
-  color: #e3e3e3;
-  font-family: 'Courier New', monospace;
   margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #0e0e0e;
+  color: #f0f0f0;
+  line-height: 1.6;
+}
+
+/* === HEADER === */
+.glitch-header {
+  background: #111;
+  padding: 2rem;
+  text-align: center;
+  border-bottom: 2px solid #444;
+}
+
+.glitch-header h1 {
+  font-size: 2.5rem;
+  color: #00fff9;
+  text-shadow: 0 0 5px #00fff9, 0 0 20px #ff00c8;
+  margin: 0;
+}
+
+.tagline {
+  font-style: italic;
+  color: #ccc;
+  margin-top: 0.5rem;
+}
+
+nav {
+  margin-top: 1rem;
+}
+
+.logout-btn {
+  background: #ff006f;
+  border: none;
+  color: #fff;
+  padding: 0.4rem 0.8rem;
+  text-decoration: none;
+  border-radius: 5px;
+  margin-left: 1rem;
+}
+
+.logout-btn:hover {
+  background: #ff338c;
+}
+
+/* === CONTAINER === */
+.glitch-container {
+  max-width: 1200px;
+  margin: auto;
   padding: 2rem;
 }
 
-.container {
-  max-width: 900px;
-  margin: auto;
-  text-align: center;
-}
-
-.glitch-title {
-  font-size: 3rem;
-  color: #ff00cc;
-  text-shadow: -2px 0 cyan, 2px 2px magenta;
-}
-
-.subtitle {
-  font-size: 1.2rem;
+/* === FORM === */
+.add-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
   margin-bottom: 2rem;
-  color: #ccc;
 }
 
-form input[type="text"],
-form input[type="password"] {
+.add-form input[type="text"] {
+  flex: 1;
   padding: 0.6rem;
-  margin: 0.5rem;
-  width: 240px;
-  max-width: 100%;
-  background: #111;
-  border: 1px solid #444;
+  border-radius: 4px;
+  border: 1px solid #666;
+  background-color: #1a1a1a;
   color: #fff;
 }
 
-button {
-  background: #ff00cc;
+.add-form button {
+  background-color: #00fff9;
+  color: #000;
   border: none;
-  color: #fff;
-  padding: 0.6rem 1rem;
-  margin-top: 0.5rem;
+  padding: 0.6rem 1.2rem;
   cursor: pointer;
+  border-radius: 4px;
+  font-weight: bold;
 }
 
-button:hover {
-  background: #ff33cc;
+.add-form button:hover {
+  background-color: #0ff;
 }
 
+/* === TABLE === */
 table {
   width: 100%;
-  margin-top: 2rem;
   border-collapse: collapse;
+  margin-top: 1rem;
 }
 
 th, td {
-  border: 1px solid #333;
-  padding: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid #444;
+  text-align: left;
 }
 
+th {
+  background-color: #1a1a1a;
+  color: #00fff9;
+}
+
+tr:nth-child(even) {
+  background-color: #1c1c1c;
+}
+
+/* === QR THUMBNAIL + DOWNLOADS === */
 .qr-thumb {
-  width: 60px;
-  height: 60px;
-}
-
-.download-btn, .logout-btn {
-  display: inline-block;
-  margin: 1rem;
-  padding: 0.5rem 1rem;
-  background: #0080ff;
-  color: white;
-  text-decoration: none;
+  width: 100px;
+  height: 100px;
+  background-color: #fff;
   border-radius: 4px;
+  padding: 4px;
+  object-fit: contain;
+  display: block;
+  margin: auto;
+  box-shadow: 0 0 8px #00fff9;
 }
 
+.qr-downloads {
+  text-align: center;
+  margin-top: 0.3rem;
+  font-size: 0.9rem;
+}
+
+.qr-downloads a {
+  color: #0ff;
+  text-decoration: none;
+  margin: 0 0.3rem;
+}
+
+.qr-downloads a:hover {
+  color: #fff;
+  text-decoration: underline;
+}
+
+/* === EXPORT LINK === */
+.export-link {
+  margin-top: 2rem;
+  text-align: center;
+}
+
+.export-link a {
+  background: #00fff9;
+  color: #000;
+  padding: 0.5rem 1rem;
+  border-radius: 5px;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.export-link a:hover {
+  background: #0ff;
+}
+
+/* === FOOTER === */
 footer {
-  margin-top: 3rem;
-  font-size: 0.8rem;
-  color: #666;
+  text-align: center;
+  padding: 2rem 1rem;
+  font-size: 0.9rem;
+  color: #888;
+  border-top: 2px solid #222;
+  background-color: #111;
 }
