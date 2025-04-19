@@ -1,188 +1,22 @@
-/* === Base Reset === */
-body {
-    background-color: #0a0a0a;
-    color: #e0e0e0;
-    font-family: 'Courier New', Courier, monospace;
-    margin: 0;
-    padding: 0;
-    line-height: 1.6;
-}
-
-/* === Layout === */
-.container {
-    max-width: 960px;
-    margin: 40px auto;
-    padding: 20px;
-    background: #111;
-    border: 2px solid #3f3f3f;
-    border-radius: 12px;
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
-}
-
-h1, h2 {
+.subtitle {
+    color: #bbb;
     text-align: center;
-    color: #00ffff;
-    text-shadow: 0 0 5px #00ffff;
-}
-
-h1 {
-    margin-bottom: 10px;
-}
-
-h2 {
-    font-size: 1.2rem;
-    color: #aaa;
-    margin-top: 0;
-    margin-bottom: 30px;
-}
-
-/* === Table === */
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
-}
-
-th, td {
-    padding: 12px;
-    border-bottom: 1px solid #333;
-    text-align: center;
-}
-
-th {
-    background-color: #111;
-    color: #00ffff;
-    font-weight: bold;
-}
-
-td {
-    background-color: #1c1c1c;
-}
-
-tr:hover {
-    background-color: #292929;
-}
-
-/* === Buttons === */
-button, .button {
-    padding: 8px 16px;
-    background-color: #00ffff;
-    color: #000;
-    font-weight: bold;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    text-decoration: none;
-    margin: 2px;
-}
-
-button:hover, .button:hover {
-    background-color: #00bbbb;
-}
-
-/* === Form Fields === */
-input[type="text"], input[type="url"] {
-    padding: 10px;
-    width: calc(100% - 24px);
-    border: 1px solid #333;
-    border-radius: 6px;
-    background-color: #1a1a1a;
-    color: #fff;
-    margin-bottom: 10px;
-}
-
-/* === Footer === */
-footer {
-    text-align: center;
-    margin-top: 60px;
-    font-size: 0.9em;
-    color: #666;
-}
-
-/* === QR Thumbnail === */
-.qr-thumb {
-    width: 100px;
-    height: 100px;
-    object-fit: contain;
-    border: 2px solid #fff;
-    border-radius: 8px;
-    background-color: #000;
-}
-
-/* === QR Table Button Cells === */
-.qr-actions form {
-    display: inline;
-}
-
-/* === Login Box === */
-.login-box {
-    background-color: #111;
-    max-width: 400px;
-    margin: 80px auto;
-    padding: 30px;
-    border: 2px solid #3f3f3f;
-    border-radius: 12px;
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
-}
-
-.login-box h2 {
-    color: #00ffff;
+    font-size: 1.2em;
+    margin-top: -10px;
     margin-bottom: 20px;
-    text-align: center;
+    font-style: italic;
 }
 
-.login-box input {
-    width: 100%;
-    padding: 12px;
-    margin-bottom: 15px;
-    background-color: #1a1a1a;
-    border: 1px solid #333;
-    border-radius: 6px;
-    color: #fff;
-}
-
-/* === Glitch Header Logo === */
-.logo-glitch {
-    font-size: 2rem;
-    text-align: center;
-    margin-top: 20px;
-    color: #00ffff;
-    text-shadow: 1px 0 red, -1px 0 blue;
-    font-family: 'Courier New', Courier, monospace;
-}
-
-/* === Logout Button (Top Right) === */
-.logout-link {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    color: #00ffff;
-    font-weight: bold;
+a {
+    color: #5ecdfd;
     text-decoration: none;
+    font-weight: bold;
 }
 
-.logout-link:hover {
+a:hover {
     text-decoration: underline;
 }
 
-/* === Center Add Form === */
-.add-form {
-    display: flex;
-    gap: 10px;
-    margin-top: 20px;
-    justify-content: center;
-    flex-wrap: wrap;
-}
-
-.add-form input[type="text"],
-.add-form input[type="url"] {
-    flex: 1 1 40%;
-}
-
-/* === Download Buttons Styling === */
-.qr-buttons {
-    display: flex;
-    justify-content: center;
-    gap: 6px;
-    flex-wrap: wrap;
+a:visited {
+    color: #5ecdfd;
 }
