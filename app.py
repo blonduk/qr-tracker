@@ -53,6 +53,42 @@ def logout():
     session.clear()
     return redirect('/login')
 
+@app.route('/admin', methods=['GET'])
+def admin_panel():
+    if session.get('user') != 'Laurence2k':
+        abort(403)
+    return render_template('admin.html', now=datetime.utcnow())
+
+@app.route('/admin/add-user', methods=['POST'])
+def admin_add_user():
+    if session.get('user') != 'Laurence2k':
+        abort(403)
+    username = request.form['username'].strip()
+    password = request.form['password'].strip()
+    if username and password and username not in USERS:
+        USERS[username] = password
+    return redirect('/admin')
+
+@app.route('/admin/update-password', methods=['POST'])
+def admin_update_password():
+    if session.get('user') != 'Laurence2k':
+        abort(403)
+    username = request.form['username'].strip()
+    new_pw = request.form['new_password'].strip()
+    if username in USERS:
+        USERS[username] = new_pw
+    return redirect('/admin')
+
+@app.route('/admin/delete-user', methods=['POST'])
+def admin_delete_user():
+    if session.get('user') != 'Laurence2k':
+        abort(403)
+    username = request.form['username'].strip()
+    if username in USERS and username != 'Laurence2k':
+        del USERS[username]
+    return redirect('/admin')
+
+
 @app.route('/dashboard')
 def dashboard():
     if 'user' not in session:
