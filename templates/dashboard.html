@@ -29,17 +29,37 @@
           <th>Short Code</th>
           <th>Destination</th>
           <th>Scans</th>
-          <th>Details</th>
+          <th>PNG</th>
+          <th>SVG</th>
+          <th>Edit</th>
+          <th>Delete</th>
         </tr>
       </thead>
       <tbody>
         {% for code, url, count in stats %}
         <tr>
-          <td><a href="/qr-detail/{{ code }}"><img src="/view-qr/{{ code }}" alt="QR" class="qr-thumb"></a></td>
-          <td>{{ code }}</td>
+          <td>
+            <a href="/qr/{{ code }}">
+              <img src="/view-qr/{{ code }}" alt="QR" class="qr-thumb">
+            </a>
+          </td>
+          <td><a href="/qr/{{ code }}" class="link-white">{{ code }}</a></td>
           <td><a href="{{ url }}" target="_blank" class="link-white">{{ url }}</a></td>
           <td>{{ count }}</td>
-          <td><a class="btn link-white" href="/qr-detail/{{ code }}">View Details</a></td>
+          <td><a href="/download-qr/{{ code }}" class="btn link-white">PNG</a></td>
+          <td><a href="/download-svg/{{ code }}" class="btn link-white">SVG</a></td>
+          <td>
+            <form action="/edit" method="POST">
+              <input type="hidden" name="short_id" value="{{ code }}">
+              <input type="text" name="new_destination" placeholder="New URL" required>
+              <button type="submit">Edit</button>
+            </form>
+          </td>
+          <td>
+            <form action="/delete/{{ code }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this redirect? This cannot be undone.')">
+              <button type="submit">Delete</button>
+            </form>
+          </td>
         </tr>
         {% endfor %}
       </tbody>
