@@ -1,0 +1,41 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Glitch Link - QR Details</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='images/favicon.png') }}">
+</head>
+<body>
+    <div class="glitch-title">Glitch Link</div>
+    <h2 class="subtitle">QR Code Generator and Tracker</h2>
+    <div class="center-wrap">
+        <h3>QR Code: {{ short_id }}</h3>
+        <p><strong>Destination:</strong> <a href="{{ destination }}" target="_blank">{{ destination }}</a></p>
+        <p><strong>Total Scans:</strong> {{ count }}</p>
+        <div class="qr-thumb-large">
+            <img src="/view-qr/{{ short_id }}" alt="QR Code" style="width:300px;height:300px;">
+        </div>
+        <div class="qr-buttons">
+            <a class="btn qr-dl" href="/download-qr/{{ short_id }}">Download PNG</a>
+            <a class="btn qr-dl" href="/download-svg/{{ short_id }}">Download SVG</a>
+        </div>
+        <h4>Edit Redirect</h4>
+        <form action="/edit" method="POST">
+            <input type="hidden" name="short_id" value="{{ short_id }}">
+            <input type="text" name="new_destination" placeholder="New Destination URL" required>
+            <button type="submit">Edit</button>
+        </form>
+        <form action="/delete/{{ short_id }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this redirect?')">
+            <button type="submit">Delete</button>
+        </form>
+        <div class="buttons-row">
+            <a href="/dashboard">Back to Dashboard</a>
+        </div>
+    </div>
+    <footer>
+        <p>&copy; {{ user }} | Glitch Link | {{ now.year if now else '2025' }}</p>
+    </footer>
+</body>
+</html>
