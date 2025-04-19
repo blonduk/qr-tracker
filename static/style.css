@@ -92,10 +92,13 @@ a:hover {
 }
 
 .table-wrap {
+    max-width: 960px;
+    margin: 0 auto;
     overflow-x: auto;
     background-color: #1a1a1a;
     border-radius: 6px;
     padding: 20px;
+    box-shadow: 0 0 10px rgba(255, 0, 204, 0.2); /* optional subtle glow */
 }
 
 table {
@@ -103,6 +106,7 @@ table {
     border-collapse: collapse;
     margin: 20px auto;
     font-size: 0.9em;
+    table-layout: auto;
 }
 
 th, td {
@@ -155,4 +159,8 @@ footer {
     margin: 80px auto 40px;
     border-radius: 8px;
     box-shadow: 0 0 20px rgba(0,255,255,0.1);
+}
+
+body {
+    overflow-x: hidden;
 }
