@@ -35,7 +35,7 @@
             <th>Destination</th>
             <th>Scans</th>
             <th>QR</th>
-            <th>Copy Link</th>
+            <th>Copy</th>
             <th>Edit</th>
             <th>Delete</th>
           </tr>
@@ -48,8 +48,12 @@
             <td>{{ row[2] }}</td>
             <td>
               <a href="/view-qr/{{ row[0] }}" target="_blank">
-                <img src="/view-qr/{{ row[0] }}" class="qr-thumb" />
+                <img src="/view-qr/{{ row[0] }}?size=thumb" class="qr-thumb" />
               </a>
+              <div class="qr-downloads">
+                <a href="/download-qr/{{ row[0] }}?type=png">PNG</a> |
+                <a href="/download-qr/{{ row[0] }}?type=svg">SVG</a>
+              </div>
             </td>
             <td>
               <button onclick="copyToClipboard('{{ request.host_url }}track?id={{ row[0] }}')">Copy</button>
