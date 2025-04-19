@@ -1,85 +1,82 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>GlitchLink Dashboard</title>
-  <link rel="stylesheet" href="/static/style.css" />
+  <meta charset="UTF-8">
+  <title>Glitch Link Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body class="glitch-theme">
-  <header class="topbar">
-    <h1 class="logo">Glitch<span>Link</span></h1>
-    <p class="subtitle">QR Code Generator and Tracker</p>
-    <a href="/logout" class="logout-btn">Logout</a>
-  </header>
+<body>
+  <div class="container">
 
-  <main>
-    <section class="add-form">
-      <h2>Add a New QR Link</h2>
-      <form action="/add" method="POST">
-        <input type="text" name="short_id" placeholder="Short Code" required />
-        <input type="text" name="destination" placeholder="Destination URL" required />
-        <button type="submit">➕ Add</button>
-      </form>
-    </section>
+    <header>
+      <h1>Glitch Link</h1>
+      <p class="subtitle">QR Code Generator and Tracker</p>
+      <a href="/logout" class="logout-button">Logout</a>
+    </header>
 
-    <section class="qr-table">
-      <h2>Your QR Codes</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Code</th>
-            <th>Destination</th>
-            <th>Scans</th>
-            <th>QR Preview</th>
-            <th>Copy</th>
-            <th>Edit</th>
-            <th>Delete</th>
-            <th>Download</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for row in stats %}
-          <tr>
-            <td>{{ row[0] }}</td>
-            <td>{{ row[1] }}</td>
-            <td>{{ row[2] }}</td>
-            <td>
-              <a href="/view-qr/{{ row[0] }}" target="_blank">
-                <img src="/view-qr/{{ row[0] }}" class="qr-thumb" />
-              </a>
-            </td>
-            <td>
-              <button onclick="copyToClipboard('{{ request.host_url }}track?id={{ row[0] }}')">Copy</button>
-            </td>
-            <td>
-              <form action="/edit" method="POST">
-                <input type="hidden" name="short_id" value="{{ row[0] }}">
-                <input type="text" name="new_destination" placeholder="New URL">
-                <button type="submit">✏️</button>
-              </form>
-            </td>
-            <td>
-              <form action="/delete/{{ row[0] }}" method="POST" onsubmit="return confirm('Are you sure?')">
-                <button type="submit">🗑️</button>
-              </form>
-            </td>
-            <td>
-              <a href="/download-qr/{{ row[0] }}.png" class="btn-small">PNG</a>
-              <a href="/download-qr/{{ row[0] }}.svg" class="btn-small">SVG</a>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </section>
+    <form action="/add" method="POST" class="add-form">
+      <input type="text" name="short_id" placeholder="Short Code" required>
+      <input type="text" name="destination" placeholder="Destination URL" required>
+      <button type="submit">Add New Redirect</button>
+    </form>
 
-    <a href="/export-csv" class="btn-export">⬇️ Download CSV Log</a>
-  </main>
+    <table>
+      <thead>
+        <tr>
+          <th>Short Code</th>
+          <th>Destination</th>
+          <th>Scans</th>
+          <th>QR Preview</th>
+          <th>Copy Link</th>
+          <th>Edit</th>
+          <th>Delete</th>
+          <th>PNG</th>
+          <th>SVG</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in stats %}
+        <tr>
+          <td>{{ row[0] }}</td>
+          <td>{{ row[1] }}</td>
+          <td>{{ row[2] }}</td>
+          <td>
+            <a href="/view-qr/{{ row[0] }}" target="_blank">
+              <img src="/view-qr/{{ row[0] }}" class="qr-thumb" alt="QR Code">
+            </a>
+          </td>
+          <td>
+            <button onclick="copyToClipboard('{{ request.host_url }}track?id={{ row[0] }}')">Copy</button>
+          </td>
+          <td>
+            <form action="/edit" method="POST">
+              <input type="hidden" name="short_id" value="{{ row[0] }}">
+              <input type="text" name="new_destination" placeholder="New URL">
+              <button type="submit">Update</button>
+            </form>
+          </td>
+          <td>
+            <form action="/delete/{{ row[0] }}" method="POST" onsubmit="return confirm('Are you sure?')">
+              <button type="submit">Delete</button>
+            </form>
+          </td>
+          <td>
+            <a href="/download-qr/{{ row[0] }}?type=png" class="download-btn" title="Download PNG">PNG</a>
+          </td>
+          <td>
+            <a href="/download-qr/{{ row[0] }}?type=svg" class="download-btn" title="Download SVG">SVG</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
 
-  <footer>
-    <p>© {{ user }} – GlitchLink 2025</p>
-  </footer>
+    <footer>
+      <p>&copy; {{ user }} | Glitch Link | {{ now.strftime('%Y') }}</p>
+      <a href="/export-csv" class="download-all">Export Logs (CSV)</a>
+    </footer>
+
+  </div>
 
   <script>
     function copyToClipboard(text) {
