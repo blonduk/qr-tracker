@@ -71,6 +71,23 @@ def dashboard():
 
     return render_template('dashboard.html', stats=stats, user=user, now=datetime.utcnow())
 
+@app.route('/qr/<short_id>')
+def qr_detail(short_id):
+    if 'user' not in session:
+        return redirect('/login')
+
+    redirects = load_redirects()
+    logs = load_logs()
+
+    qr_entry = next((r for r in redirects if r['Short Code'] == short_id and r['User'] == session['user']), None)
+    if not qr_entry:
+        abort(404)
+
+    scan_logs = [log for log in logs if log['Short Code'] == short_id]
+
+    return render_template('qr_detail.html', qr=qr_entry, logs=scan_logs)
+
+
 @app.route('/add', methods=['POST'])
 def add():
     if 'user' not in session:
