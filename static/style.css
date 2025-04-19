@@ -1,101 +1,157 @@
 body {
+    background-color: #0e0e0e;
+    color: #e0e0e0;
     font-family: 'Courier New', monospace;
-    background-color: #111;
-    color: #fff;
     margin: 0;
     padding: 0;
     text-align: center;
 }
 
-.glitch {
-    font-size: 2.5rem;
-    color: #fff;
-    position: relative;
+.glitch-title {
+    font-size: 3em;
+    font-weight: bold;
+    margin-top: 30px;
+    letter-spacing: 1px;
+    color: white;
+    text-shadow:
+        1px 0 red,
+        -1px 0 cyan,
+        0 1px lime,
+        0 -1px blue;
 }
 
 .subtitle {
-    font-size: 1.2rem;
-    color: #aaa;
-    margin-bottom: 1rem;
+    margin-top: -10px;
+    font-size: 1.2em;
+    color: #bbb;
 }
 
-.centered-content {
-    max-width: 1000px;
-    margin: 0 auto;
-    padding: 2rem;
+.center-wrap {
+    width: 90%;
+    max-width: 960px;
+    margin: 40px auto;
 }
 
 form {
-    margin: 1rem auto;
+    margin: 20px 0;
 }
 
-.qr-thumb {
-    height: 60px;
-    width: 60px;
-    image-rendering: pixelated;
-}
-
-input[type="text"] {
-    padding: 0.5rem;
-    width: 200px;
-    margin: 0.5rem;
+input[type="text"],
+input[type="url"],
+input[type="password"] {
+    padding: 10px;
+    margin: 5px;
+    border: none;
+    width: 240px;
     border-radius: 4px;
-    border: 1px solid #444;
 }
 
-button, .btn {
-    padding: 0.5rem 1rem;
-    background-color: #00f;
+button {
+    padding: 10px 16px;
+    background-color: #0066ff;
     color: white;
     border: none;
     border-radius: 4px;
     cursor: pointer;
+    font-weight: bold;
+    margin-top: 5px;
+}
+
+button:hover {
+    background-color: #0050cc;
+}
+
+.qr-thumb {
+    width: 80px;
+    height: 80px;
+    border: 2px solid #555;
+    border-radius: 4px;
+    background: white;
+}
+
+.qr-buttons a.qr-dl {
+    color: white;
+    text-decoration: none;
+    font-size: 0.9em;
+    font-weight: bold;
+    margin: 0 5px;
+}
+
+.qr-buttons a.qr-dl:hover {
+    text-decoration: underline;
+}
+
+a {
+    color: #0066ff;
     text-decoration: none;
 }
 
-.btn.link-white {
-    color: white !important;
+a:hover {
+    text-decoration: underline;
+}
+
+.table-wrap {
+    overflow-x: auto;
+    background-color: #1a1a1a;
+    border-radius: 6px;
+    padding: 20px;
 }
 
 table {
     width: 100%;
-    margin-top: 2rem;
     border-collapse: collapse;
-    background: #222;
+    margin: 20px auto;
+    font-size: 0.9em;
 }
 
 th, td {
-    padding: 0.8rem;
-    border: 1px solid #444;
-    text-align: center;
+    padding: 12px;
+    border-bottom: 1px solid #444;
 }
 
-a {
-    color: #00f;
+th {
+    background-color: #111;
+    color: #fff;
 }
 
-a:visited {
-    color: #00f;
+tr:nth-child(even) {
+    background-color: #1e1e1e;
+}
+
+.error {
+    color: red;
+    margin-top: 10px;
 }
 
 footer {
-    margin-top: 2rem;
-    font-size: 0.9rem;
-    color: #888;
+    margin-top: 40px;
+    font-size: 0.9em;
+    color: #555;
 }
 
-.logout-btn {
-    position: absolute;
-    top: 10px;
-    right: 20px;
-    padding: 0.5rem 1rem;
-    background: #222;
+.buttons-row {
+    margin-top: 20px;
+}
+
+.buttons-row a {
+    display: inline-block;
+    margin: 0 12px;
+    padding: 10px 16px;
+    background-color: #0066ff;
     color: white;
-    border: 1px solid white;
     border-radius: 4px;
-    text-decoration: none;
+    font-weight: bold;
 }
 
-.logout-btn:hover {
-    background: #444;
+.buttons-row a:hover {
+    background-color: #004ec2;
+}
+
+.login-container {
+    background-color: #1a1a1a;
+    padding: 30px;
+    width: 320px;
+    margin: 80px auto 40px;
+    border-radius: 8px;
+    box-shadow: 0 0 20px rgba(0,255,255,0.1);
 }
