@@ -12,7 +12,9 @@
     <h2 class="subtitle">QR Code Generator and Tracker</h2>
 
     <h3>Details for <strong>{{ qr['Short Code'] }}</strong></h3>
-    <p><strong>Destination:</strong> <a href="{{ qr['Destination'] }}" target="_blank">{{ qr['Destination'] }}</a></p>
+<p><strong>Destination:</strong> <a href="{{ qr['Destination'] }}" target="_blank">{{ qr['Destination'] }}</a></p>
+<p><strong>Total Scans:</strong> {{ logs|length }}</p>
+
 
     <img src="/view-qr/{{ qr['Short Code'] }}" alt="QR Code" style="width:200px; height:200px; margin: 20px auto; display:block;">
 
