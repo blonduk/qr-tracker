@@ -2,10 +2,10 @@ from flask import Flask, request, redirect, render_template, session, send_file,
 import qrcode
 import io
 import csv
-import svgwrite
-from datetime import datetime
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+from datetime import datetime
+import os
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key_here'
@@ -33,6 +33,7 @@ def load_logs():
     sheet = get_sheet("QR Scan Archive")
     return sheet.get_all_records()
 
+# Routes
 @app.route('/')
 def home():
     if 'user' not in session:
@@ -59,7 +60,7 @@ def logout():
 def dashboard():
     if 'user' not in session:
         return redirect('/login')
-
+    
     user = session['user']
     redirects = [r for r in load_redirects() if r['User'] == user]
     logs = load_logs()
@@ -71,13 +72,13 @@ def dashboard():
         count = sum(1 for log in logs if log['Short Code'] == sid)
         stats.append((sid, dest, count))
 
-    return render_template('dashboard.html', stats=stats, user=user)
+    return render_template('dashboard.html', stats=stats, user=user, now=datetime.utcnow())
 
 @app.route('/add', methods=['POST'])
 def add():
     if 'user' not in session:
         return redirect('/login')
-
+    
     short = request.form['short_id'].strip()
     dest = request.form['destination'].strip()
     user = session['user']
@@ -90,7 +91,7 @@ def add():
 def edit():
     if 'user' not in session:
         return redirect('/login')
-
+    
     short = request.form['short_id'].strip()
     new_url = request.form['new_destination'].strip()
     sheet = get_sheet("QR Redirects")
@@ -105,7 +106,7 @@ def edit():
 def delete(short_id):
     if 'user' not in session:
         return redirect('/login')
-
+    
     sheet = get_sheet("QR Redirects")
     records = sheet.get_all_records()
     for i, row in enumerate(records, start=2):
@@ -144,42 +145,44 @@ def view_qr(short_id):
     url = f"{request.host_url}track?id={short_id}"
     img = qrcode.make(url)
     buf = io.BytesIO()
-    img = img.resize((1000, 1000))
     img.save(buf)
     buf.seek(0)
     return send_file(buf, mimetype='image/png')
 
-@app.route('/download-qr/<short_id>.png')
+@app.route('/download-png/<short_id>')
 def download_png(short_id):
     url = f"{request.host_url}track?id={short_id}"
     img = qrcode.make(url)
     buf = io.BytesIO()
     img = img.resize((1000, 1000))
-    img.save(buf)
+    img.save(buf, format='PNG')
     buf.seek(0)
-    return send_file(buf, mimetype='image/png', as_attachment=True, download_name=f"glitchlink_{short_id}.png")
+    return send_file(buf, mimetype='image/png', as_attachment=True, download_name=f"{short_id}_glitchlink.png")
 
-@app.route('/download-qr/<short_id>.svg')
+@app.route('/download-svg/<short_id>')
 def download_svg(short_id):
+    try:
+        import svgwrite
+    except ImportError:
+        return "SVG support not installed", 500
+
     url = f"{request.host_url}track?id={short_id}"
-    dwg = svgwrite.Drawing(size=("1000px", "1000px"))
+    dwg = svgwrite.Drawing(size=(1000, 1000))
     qr = qrcode.make(url)
     matrix = qr.get_matrix()
-
-    size = 10
-    for y, row in enumerate(matrix):
-        for x, val in enumerate(row):
-            if val:
-                dwg.add(dwg.rect(insert=(x * size, y * size), size=(size, size), fill='black'))
-
-    buf = io.BytesIO(dwg.tostring().encode())
-    return send_file(buf, mimetype='image/svg+xml', as_attachment=True, download_name=f"glitchlink_{short_id}.svg")
+    box_size = 10
+    for y in range(len(matrix)):
+        for x in range(len(matrix[y])):
+            if matrix[y][x]:
+                dwg.add(dwg.rect(insert=(x*box_size, y*box_size), size=(box_size, box_size), fill='black'))
+    svg_data = dwg.tostring()
+    return send_file(io.BytesIO(svg_data.encode()), mimetype='image/svg+xml', as_attachment=True, download_name=f"{short_id}_glitchlink.svg")
 
 @app.route('/export-csv')
 def export_csv():
     if 'user' not in session:
         return redirect('/login')
-
+    
     user = session['user']
     logs = load_logs()
     user_codes = [r['Short Code'] for r in load_redirects() if r['User'] == user]
