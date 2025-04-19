@@ -2,68 +2,62 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard | Glitch Link</title>
+    <title>Glitch Link Dashboard</title>
     <link rel="stylesheet" href="/static/style.css">
-    <link rel="icon" type="image/png" href="/static/images/404_glitch.png">
+    <link rel="icon" href="/static/images/404_glitch.png" type="image/png">
 </head>
 <body>
     <div class="container">
-        <h1>Welcome, {{ user }}</h1>
+        <h1>Welcome, {{ user }} 👾</h1>
         <h2>Your QR Codes</h2>
 
-        <form action="/add" method="post" class="add-form">
+        <form action="/add" method="POST" class="glitch-form">
             <input type="text" name="short_id" placeholder="Short Code" required>
-            <input type="url" name="destination" placeholder="Destination URL" required>
-            <button type="submit">+ Add</button>
+            <input type="text" name="destination" placeholder="Destination URL" required>
+            <button type="submit">Add New</button>
         </form>
 
         <table>
-            <thead>
-                <tr>
-                    <th>Short Code</th>
-                    <th>Destination</th>
-                    <th>Scans</th>
-                    <th>QR</th>
-                    <th>Download</th>
-                    <th>Edit</th>
-                    <th>Delete</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for sid, dest, count in stats %}
-                <tr>
-                    <td>{{ sid }}</td>
-                    <td><a href="{{ dest }}" target="_blank">{{ dest }}</a></td>
-                    <td>{{ count }}</td>
-                    <td><a href="/view-qr/{{ sid }}" target="_blank"><img src="/view-qr/{{ sid }}" width="60" height="60"></a></td>
-                    <td>
-                        <a href="/download-png/{{ sid }}">PNG</a> |
-                        <a href="/download-svg/{{ sid }}">SVG</a>
-                    </td>
-                    <td>
-                        <form action="/edit" method="post">
-                            <input type="hidden" name="short_id" value="{{ sid }}">
-                            <input type="url" name="new_destination" placeholder="New URL" required>
-                            <button type="submit">Save</button>
-                        </form>
-                    </td>
-                    <td>
-                        <form action="/delete/{{ sid }}" method="post" onsubmit="return confirm('Delete this code?')">
-                            <button type="submit">✖</button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
+            <tr>
+                <th>QR</th>
+                <th>Short Code</th>
+                <th>Destination</th>
+                <th>Scans</th>
+                <th>Actions</th>
+            </tr>
+            {% for short_id, destination, count in stats %}
+            <tr>
+                <td>
+                    <a href="/view-qr/{{ short_id }}" target="_blank">
+                        <img src="/view-qr/{{ short_id }}" alt="QR" width="60">
+                    </a>
+                </td>
+                <td>{{ short_id }}</td>
+                <td>{{ destination }}</td>
+                <td>{{ count }}</td>
+                <td>
+                    <form action="/edit" method="POST" class="inline-form">
+                        <input type="hidden" name="short_id" value="{{ short_id }}">
+                        <input type="text" name="new_destination" placeholder="New URL">
+                        <button type="submit">✏️</button>
+                    </form>
+                    <form action="/delete/{{ short_id }}" method="POST" class="inline-form" onsubmit="return confirm('Delete this QR?');">
+                        <button type="submit">🗑️</button>
+                    </form>
+                    <a href="/download-png/{{ short_id }}" title="Download PNG">📥 PNG</a>
+                    <a href="/download-svg/{{ short_id }}" title="Download SVG">📐 SVG</a>
+                </td>
+            </tr>
+            {% endfor %}
         </table>
 
-        <div class="buttons">
-            <a href="/export-csv" class="export-btn">📄 Export Logs</a>
-            <a href="/logout" class="logout-btn">Logout</a>
+        <div class="button-row">
+            <a href="/export-csv" class="button">📄 Export Logs</a>
+            <a href="/logout" class="button">🚪 Logout</a>
         </div>
 
         <footer>
-            <p>&copy; {{ now.year }} Glitch Link | Made by {{ user }}</p>
+            <p>&copy; {{ user }} | Glitch Link | {{ now.strftime('%Y') }}</p>
         </footer>
     </div>
 </body>
