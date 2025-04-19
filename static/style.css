@@ -1,145 +1,119 @@
 body {
-  margin: 0;
-  padding: 0;
-  font-family: 'Courier New', monospace;
-  background-color: #0d0d0d;
-  color: #00ffcc;
-  text-align: center;
+    font-family: 'Courier New', monospace;
+    background-color: #0a0a0a;
+    color: #f2f2f2;
+    margin: 0;
+    padding: 0;
 }
 
 .container {
-  max-width: 1000px;
-  margin: 40px auto;
-  padding: 20px;
-  background: #111;
-  border: 1px solid #00ffcc;
-  box-shadow: 0 0 20px #00ffcc44;
-  border-radius: 8px;
+    max-width: 1000px;
+    margin: 40px auto;
+    padding: 20px;
+    background: #111;
+    border: 2px dashed #00ffcc;
+    box-shadow: 0 0 15px #00ffcc33;
 }
 
-header h1 {
-  font-size: 2.8rem;
-  text-transform: uppercase;
-  margin-bottom: 0;
-  color: #00ffff;
-  text-shadow: 0 0 5px #00ffffaa, 0 0 10px #ff00ff88;
+h1, h2 {
+    color: #00ffcc;
+    text-align: center;
+    text-shadow: 0 0 5px #00ffcc;
 }
 
-.subtitle {
-  margin-top: 0;
-  font-size: 1.1rem;
-  color: #ccc;
-  font-style: italic;
+a {
+    color: #00ffee;
+    text-decoration: none;
 }
 
-.logout-button {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  background: #ff0066;
-  color: white;
-  padding: 8px 12px;
-  text-decoration: none;
-  border-radius: 4px;
-  font-weight: bold;
-  border: none;
-  box-shadow: 0 0 8px #ff006677;
+a:hover {
+    text-decoration: underline;
 }
 
-.logout-button:hover {
-  background-color: #cc0052;
+form.add-form {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    justify-content: center;
 }
 
-.add-form {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  margin: 20px 0;
-  flex-wrap: wrap;
+form.add-form input,
+form.add-form button {
+    padding: 10px;
+    border: none;
+    background: #222;
+    color: #f2f2f2;
+    border-bottom: 2px solid #00ffcc;
 }
 
-.add-form input[type="text"],
-.add-form button {
-  padding: 8px;
-  font-size: 1rem;
-  border: 1px solid #00ffcc;
-  background-color: #222;
-  color: #00ffcc;
-  border-radius: 4px;
+form.add-form button {
+    background: #00ffcc;
+    color: #000;
+    cursor: pointer;
+    font-weight: bold;
 }
 
-.add-form button {
-  background-color: #00ffcc;
-  color: #000;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-.add-form button:hover {
-  background-color: #00cccc;
+form button:hover {
+    background: #00ffaa;
 }
 
 table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 30px;
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
 }
 
 th, td {
-  border: 1px solid #00ffcc33;
-  padding: 10px;
-  text-align: center;
+    padding: 10px;
+    border-bottom: 1px solid #333;
+    text-align: center;
 }
 
 th {
-  background-color: #111;
-  color: #00ffff;
-  text-transform: uppercase;
-  font-size: 0.9rem;
+    background: #00ffcc;
+    color: #000;
 }
 
-td {
-  font-size: 0.95rem;
+tr:hover {
+    background-color: #111922;
 }
 
-img.qr-thumb {
-  width: 60px;
-  height: 60px;
-  border: 2px solid #00ffcc44;
-  border-radius: 4px;
+input[type="url"] {
+    width: 80%;
+    padding: 5px;
 }
 
-button, a.download-btn {
-  padding: 6px 10px;
-  font-size: 0.85rem;
-  background-color: #222;
-  color: #00ffcc;
-  border: 1px solid #00ffcc44;
-  border-radius: 4px;
-  cursor: pointer;
-  text-decoration: none;
+button {
+    padding: 5px 10px;
 }
 
-a.download-btn:hover,
-button:hover {
-  background-color: #00ffcc;
-  color: #000;
+.buttons {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.export-btn,
+.logout-btn {
+    display: inline-block;
+    margin: 0 10px;
+    padding: 10px 20px;
+    background: #00ffcc;
+    color: #000;
+    font-weight: bold;
+    border: none;
+    text-decoration: none;
+    border-radius: 5px;
+    transition: background 0.2s;
+}
+
+.export-btn:hover,
+.logout-btn:hover {
+    background: #00ffaa;
 }
 
 footer {
-  margin-top: 40px;
-  color: #888;
-  font-size: 0.9rem;
-}
-
-.download-all {
-  display: inline-block;
-  margin-top: 8px;
-  font-weight: bold;
-  color: #00ffcc;
-  text-decoration: underline;
-}
-
-.download-all:hover {
-  color: #00dddd;
+    text-align: center;
+    font-size: 0.9em;
+    color: #888;
+    margin-top: 40px;
 }
