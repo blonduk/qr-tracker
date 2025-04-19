@@ -13,8 +13,9 @@
         <a href="/logout" class="btn logout-btn">Logout</a>
     </header>
 
-    <main class="dashboard-container">
+    <main class="centered-content">
         <h2>Welcome, {{ user }}!</h2>
+
         <form action="/add" method="POST" class="add-form">
             <input type="text" name="short_id" placeholder="Short Code" required>
             <input type="text" name="destination" placeholder="Destination URL" required>
@@ -39,10 +40,10 @@
                 <tr>
                     <td><a href="/view-qr/{{ code }}" target="_blank"><img src="/view-qr/{{ code }}" alt="QR" class="qr-thumb"></a></td>
                     <td>{{ code }}</td>
-                    <td><a href="{{ url }}" target="_blank">{{ url }}</a></td>
+                    <td><a href="{{ url }}" target="_blank" class="link-white">{{ url }}</a></td>
                     <td>{{ count }}</td>
-                    <td><a href="/download-qr/{{ code }}" class="btn">PNG</a></td>
-                    <td><a href="/download-svg/{{ code }}" class="btn">SVG</a></td>
+                    <td><a href="/download-qr/{{ code }}" class="btn link-white">PNG</a></td>
+                    <td><a href="/download-svg/{{ code }}" class="btn link-white">SVG</a></td>
                     <td>
                         <form action="/edit" method="POST">
                             <input type="hidden" name="short_id" value="{{ code }}">
@@ -61,7 +62,7 @@
         </table>
 
         <div class="export-area">
-            <a href="/export-csv" class="btn">Download CSV</a>
+            <a href="/export-csv" class="btn link-white">Download CSV</a>
         </div>
     </main>
 
