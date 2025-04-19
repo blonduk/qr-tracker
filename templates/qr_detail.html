@@ -1,41 +1,62 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Glitch Link - QR Details</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <link rel="icon" href="{{ url_for('static', filename='images/favicon.png') }}">
+  <meta charset="UTF-8">
+  <title>QR Code Details - Glitch Link</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="icon" href="{{ url_for('static', filename='images/favicon.png') }}">
 </head>
 <body>
+  <div class="center-wrap">
     <div class="glitch-title">Glitch Link</div>
     <h2 class="subtitle">QR Code Generator and Tracker</h2>
-    <div class="center-wrap">
-        <h3>QR Code: {{ short_id }}</h3>
-        <p><strong>Destination:</strong> <a href="{{ destination }}" target="_blank">{{ destination }}</a></p>
-        <p><strong>Total Scans:</strong> {{ count }}</p>
-        <div class="qr-thumb-large">
-            <img src="/view-qr/{{ short_id }}" alt="QR Code" style="width:300px;height:300px;">
-        </div>
-        <div class="qr-buttons">
-            <a class="btn qr-dl" href="/download-qr/{{ short_id }}">Download PNG</a>
-            <a class="btn qr-dl" href="/download-svg/{{ short_id }}">Download SVG</a>
-        </div>
-        <h4>Edit Redirect</h4>
-        <form action="/edit" method="POST">
-            <input type="hidden" name="short_id" value="{{ short_id }}">
-            <input type="text" name="new_destination" placeholder="New Destination URL" required>
-            <button type="submit">Edit</button>
-        </form>
-        <form action="/delete/{{ short_id }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this redirect?')">
-            <button type="submit">Delete</button>
-        </form>
-        <div class="buttons-row">
-            <a href="/dashboard">Back to Dashboard</a>
-        </div>
+
+    <h3>Details for <strong>{{ qr['Short Code'] }}</strong></h3>
+    <p><strong>Destination:</strong> <a href="{{ qr['Destination'] }}" target="_blank">{{ qr['Destination'] }}</a></p>
+    <img src="/view-qr/{{ qr['Short Code'] }}" alt="QR Code" style="width:200px; height:200px; margin: 20px auto; display:block;">
+
+    <div class="buttons-row">
+      <a href="/download-qr/{{ qr['Short Code'] }}">Download PNG</a>
+      <a href="/download-svg/{{ qr['Short Code'] }}">Download SVG</a>
     </div>
-    <footer>
-        <p>&copy; {{ user }} | Glitch Link | {{ now.year if now else '2025' }}</p>
-    </footer>
+
+    <h4>Scan Logs</h4>
+    {% if logs %}
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>IP</th>
+              <th>City</th>
+              <th>Country</th>
+              <th>User Agent</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for log in logs %}
+              <tr>
+                <td>{{ log['Timestamp'] }}</td>
+                <td>{{ log['IP'] }}</td>
+                <td>{{ log.get('City', '') }}</td>
+                <td>{{ log.get('Country', '') }}</td>
+                <td>{{ log['User Agent'] }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p>No scans yet for this code.</p>
+    {% endif %}
+
+    <div class="buttons-row" style="margin-top: 30px;">
+      <a href="/dashboard">← Back to Dashboard</a>
+    </div>
+  </div>
+
+  <footer>
+    <p>&copy; {{ session['user'] }} | Glitch Link | {{ now.year if now else '2025' }}</p>
+  </footer>
 </body>
 </html>
