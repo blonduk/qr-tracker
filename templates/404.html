@@ -1,47 +1,60 @@
-<!-- templates/404.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>404 - Page Not Found</title>
+  <title>404 - Glitch Link</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="icon" href="{{ url_for('static', filename='images/favicon.png') }}">
   <style>
-    body {
-      background-color: #000;
-      color: #0ff;
-      font-family: 'Courier New', Courier, monospace;
-      text-align: center;
-      padding-top: 50px;
-    }
-
-    h1 {
-      font-size: 5rem;
-      margin-bottom: 1rem;
-      animation: glitch 1s infinite;
-    }
-
-    p {
-      font-size: 1.5rem;
-    }
-
-    img {
-      margin-top: 30px;
-      width: 70%;
+    .glitch-404 {
       max-width: 600px;
-      border: 4px solid #0ff;
+      width: 90%;
+      margin: 40px auto 20px;
+      display: block;
+      border: 4px solid #FF00CC;
+      border-radius: 8px;
+      box-shadow: 0 0 20px #FF00CC44;
     }
 
-    @keyframes glitch {
-      0% { text-shadow: 2px 2px #f0f, -2px -2px #0ff; }
-      25% { text-shadow: -2px 2px #0ff, 2px -2px #f0f; }
-      50% { text-shadow: 2px -2px #f0f, -2px 2px #0ff; }
-      75% { text-shadow: -2px -2px #0ff, 2px 2px #f0f; }
-      100% { text-shadow: 2px 2px #f0f, -2px -2px #0ff; }
+    .error-message {
+      color: #FF00CC;
+      font-size: 1.5em;
+      margin: 20px auto 10px;
+      font-family: 'Courier New', monospace;
+    }
+
+    .btn-pink {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 12px 20px;
+      background-color: #FF00CC;
+      color: white;
+      border-radius: 6px;
+      font-weight: bold;
+      text-decoration: none;
+    }
+
+    .btn-pink:hover {
+      background-color: #cc0099;
+    }
+
+    footer {
+      margin-top: 60px;
+      font-size: 0.9em;
+      color: #FF00CC;
     }
   </style>
 </head>
+
 <body>
-  <h1>404</h1>
-  <p>Page Not Found... but the signal is still strong.</p>
-  <img src="{{ url_for('static', filename='images/404_glitch.png') }}" alt="404 glitch">
+  <img src="{{ url_for('static', filename='images/404_glitch.png') }}" alt="404 Glitch" class="glitch-404">
+
+  <div class="error-message">Signal is still strong... but this page doesn't exist.</div>
+
+  <a href="/dashboard" class="btn-pink">Go to Dashboard</a>
+
+  <footer>
+    <p>&copy; Glitch Link — QR Code Generator and Tracker</p>
+  </footer>
 </body>
 </html>
