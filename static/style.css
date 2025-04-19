@@ -1,119 +1,130 @@
 body {
+    background-color: #0f0f0f;
+    color: #f8f8f2;
     font-family: 'Courier New', monospace;
-    background-color: #0a0a0a;
-    color: #f2f2f2;
     margin: 0;
     padding: 0;
+    display: flex;
+    justify-content: center;
 }
 
 .container {
-    max-width: 1000px;
-    margin: 40px auto;
+    max-width: 960px;
+    margin-top: 40px;
     padding: 20px;
-    background: #111;
-    border: 2px dashed #00ffcc;
-    box-shadow: 0 0 15px #00ffcc33;
+    background-color: #1e1e1e;
+    border-radius: 12px;
+    box-shadow: 0 0 15px #00ffe0;
 }
 
 h1, h2 {
-    color: #00ffcc;
     text-align: center;
-    text-shadow: 0 0 5px #00ffcc;
+    color: #00ffe0;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    background-color: #2e2e2e;
+}
+
+th, td {
+    padding: 12px;
+    border-bottom: 1px solid #444;
+    text-align: center;
+}
+
+th {
+    background-color: #3c3c3c;
+    color: #00ffe0;
+}
+
+tr:hover {
+    background-color: #444;
+}
+
+input[type="text"],
+input[type="password"] {
+    padding: 10px;
+    width: 200px;
+    margin: 5px;
+    background: #000;
+    color: #00ffe0;
+    border: 1px solid #00ffe0;
+    border-radius: 4px;
+}
+
+button {
+    background-color: #00ffe0;
+    color: #000;
+    border: none;
+    padding: 10px 18px;
+    margin: 5px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+button:hover,
+a.button:hover {
+    background-color: #00bfae;
 }
 
 a {
-    color: #00ffee;
+    color: #00ffe0;
     text-decoration: none;
+    font-weight: bold;
 }
 
 a:hover {
     text-decoration: underline;
 }
 
-form.add-form {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
-    justify-content: center;
+.inline-form {
+    display: inline-block;
 }
 
-form.add-form input,
-form.add-form button {
-    padding: 10px;
-    border: none;
-    background: #222;
-    color: #f2f2f2;
-    border-bottom: 2px solid #00ffcc;
-}
-
-form.add-form button {
-    background: #00ffcc;
-    color: #000;
-    cursor: pointer;
-    font-weight: bold;
-}
-
-form button:hover {
-    background: #00ffaa;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 20px;
-}
-
-th, td {
-    padding: 10px;
-    border-bottom: 1px solid #333;
-    text-align: center;
-}
-
-th {
-    background: #00ffcc;
-    color: #000;
-}
-
-tr:hover {
-    background-color: #111922;
-}
-
-input[type="url"] {
-    width: 80%;
-    padding: 5px;
-}
-
-button {
-    padding: 5px 10px;
-}
-
-.buttons {
+form.glitch-form {
     text-align: center;
     margin-top: 20px;
 }
 
-.export-btn,
-.logout-btn {
-    display: inline-block;
-    margin: 0 10px;
-    padding: 10px 20px;
-    background: #00ffcc;
-    color: #000;
-    font-weight: bold;
-    border: none;
-    text-decoration: none;
-    border-radius: 5px;
-    transition: background 0.2s;
-}
-
-.export-btn:hover,
-.logout-btn:hover {
-    background: #00ffaa;
+.button-row {
+    text-align: center;
+    margin-top: 30px;
 }
 
 footer {
     text-align: center;
-    font-size: 0.9em;
+    margin-top: 30px;
+    font-size: 0.85em;
     color: #888;
-    margin-top: 40px;
+}
+
+.login-box {
+    margin-top: 80px;
+    padding: 30px;
+    background: #1a1a1a;
+    border: 2px solid #00ffe0;
+    border-radius: 10px;
+    box-shadow: 0 0 20px #00ffe0;
+    text-align: center;
+}
+
+.login-box .glitch-title {
+    font-size: 32px;
+    color: #00ffe0;
+    margin-bottom: 10px;
+}
+
+.login-box .subtitle {
+    font-size: 14px;
+    color: #aaa;
+    margin-bottom: 20px;
+}
+
+.error {
+    color: red;
+    margin-bottom: 10px;
 }
