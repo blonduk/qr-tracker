@@ -76,6 +76,22 @@ def qr_detail(short_id):
     if 'user' not in session:
         return redirect('/login')
 
+@app.route('/admin')
+def admin_panel():
+    if 'user' not in session or session['user'] != 'Laurence2k':
+        return redirect('/dashboard')
+
+    redirects = load_redirects()
+    users = {}
+    for row in redirects:
+        user = row.get('User', 'Unknown')
+        if user not in users:
+            users[user] = []
+        users[user].append(row['Short Code'])
+
+    return render_template('admin.html', users=users, now=datetime.utcnow())
+
+
     user = session['user']
     redirect_rows = load_redirects()
     qr = next((r for r in redirect_rows if r['Short Code'] == short_id and r['User'] == user), None)
