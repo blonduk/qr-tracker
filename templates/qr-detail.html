@@ -12,10 +12,7 @@
     <h2 class="subtitle">QR Code Generator and Tracker</h2>
 
     <h3>Details for <strong>{{ qr['Short Code'] }}</strong></h3>
-<p><strong>Destination:</strong> <a href="{{ qr['Destination'] }}" target="_blank">{{ qr['Destination'] }}</a></p>
-<p><strong>Total Scans:</strong> {{ logs|length }}</p>
-
-
+    <p><strong>Destination:</strong> <a href="{{ qr['Destination'] }}" target="_blank">{{ qr['Destination'] }}</a></p>
     <img src="/view-qr/{{ qr['Short Code'] }}" alt="QR Code" style="width:200px; height:200px; margin: 20px auto; display:block;">
 
     <div class="buttons-row">
@@ -23,21 +20,17 @@
       <a href="/download-svg/{{ qr['Short Code'] }}">Download SVG</a>
     </div>
 
-    <div style="margin-top: 30px;">
-      <form action="/edit" method="POST">
-        <input type="hidden" name="short_id" value="{{ qr['Short Code'] }}">
-        <input type="text" name="new_destination" placeholder="New Destination URL" required>
-        <button type="submit">Update URL</button>
-      </form>
-    </div>
+    <form action="/edit-detail" method="POST" style="margin-top: 30px;">
+      <input type="hidden" name="short_id" value="{{ qr['Short Code'] }}">
+      <input type="text" name="new_destination" placeholder="New URL" required>
+      <button type="submit">Rename</button>
+    </form>
 
-    <div style="margin-top: 20px;">
-      <form action="/delete/{{ qr['Short Code'] }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this redirect? This cannot be undone.')">
-        <button type="submit">Delete QR</button>
-      </form>
-    </div>
+    <form action="/delete-detail/{{ qr['Short Code'] }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this QR code? This cannot be undone.')" style="margin-top: 10px;">
+      <button type="submit">Delete</button>
+    </form>
 
-    <h4 style="margin-top: 40px;">Scan Logs</h4>
+    <h4 style="margin-top: 40px;">Scan Logs ({{ logs|length }})</h4>
     {% if logs %}
       <div class="table-wrap">
         <table>
