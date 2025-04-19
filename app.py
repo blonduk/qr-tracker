@@ -57,7 +57,7 @@ def logout():
 def admin_panel():
     if session.get('user') != 'Laurence2k':
         abort(403)
-    return render_template('admin.html', now=datetime.utcnow())
+    return render_template('admin.html', users=USERS, now=datetime.utcnow())
 
 @app.route('/admin/add-user', methods=['POST'])
 def admin_add_user():
@@ -88,7 +88,6 @@ def admin_delete_user():
         del USERS[username]
     return redirect('/admin')
 
-
 @app.route('/dashboard')
 def dashboard():
     if 'user' not in session:
@@ -112,22 +111,6 @@ def qr_detail(short_id):
     if 'user' not in session:
         return redirect('/login')
 
-@app.route('/admin')
-def admin_panel():
-    if 'user' not in session or session['user'] != 'Laurence2k':
-        return redirect('/dashboard')
-
-    redirects = load_redirects()
-    users = {}
-    for row in redirects:
-        user = row.get('User', 'Unknown')
-        if user not in users:
-            users[user] = []
-        users[user].append(row['Short Code'])
-
-    return render_template('admin.html', users=users, now=datetime.utcnow())
-
-
     user = session['user']
     redirect_rows = load_redirects()
     qr = next((r for r in redirect_rows if r['Short Code'] == short_id and r['User'] == user), None)
@@ -135,7 +118,6 @@ def admin_panel():
         return "QR not found", 404
 
     logs = [l for l in load_logs() if l['Short Code'] == short_id]
-
     return render_template("qr-detail.html", qr=qr, logs=logs, now=datetime.utcnow())
 
 @app.route('/edit-detail', methods=['POST'])
