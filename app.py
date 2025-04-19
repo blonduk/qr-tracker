@@ -6,17 +6,16 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 import os
+import svgwrite
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key_here'
 
-# User accounts
 USERS = {
     "Laurence2k": "qrtracker69",
     "Jack": "artoneggs"
 }
 
-# Google Sheets setup
 def get_sheet(name):
     scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
     creds_path = '/etc/secrets/google-credentials.json'
@@ -24,7 +23,6 @@ def get_sheet(name):
     client = gspread.authorize(creds)
     return client.open(name).sheet1
 
-# Helpers
 def load_redirects():
     sheet = get_sheet("QR Redirects")
     return sheet.get_all_records()
@@ -33,7 +31,6 @@ def load_logs():
     sheet = get_sheet("QR Scan Archive")
     return sheet.get_all_records()
 
-# Routes
 @app.route('/')
 def home():
     if 'user' not in session:
@@ -146,7 +143,7 @@ def view_qr(short_id):
     img = qrcode.make(url)
     img = img.resize((1000, 1000))
     buf = io.BytesIO()
-    img.save(buf)
+    img.save(buf, format="PNG")
     buf.seek(0)
     return send_file(buf, mimetype='image/png')
 
@@ -156,17 +153,12 @@ def download_qr(short_id):
     img = qrcode.make(url)
     img = img.resize((1000, 1000))
     buf = io.BytesIO()
-    img.save(buf)
+    img.save(buf, format="PNG")
     buf.seek(0)
     return send_file(buf, mimetype='image/png', as_attachment=True, download_name=f"{short_id}_glitchlink.png")
 
 @app.route('/download-svg/<short_id>')
 def download_svg(short_id):
-    try:
-        import svgwrite
-    except ImportError:
-        return "SVG support not installed", 500
-
     url = f"{request.host_url}track?id={short_id}"
     qr = qrcode.QRCode(box_size=10, border=4)
     qr.add_data(url)
@@ -179,7 +171,9 @@ def download_svg(short_id):
     for y in range(size):
         for x in range(size):
             if matrix[y][x]:
-                dwg.add(dwg.Rect(insert=(x * box_size, y * box_size), size=(box_size, box_size), fill='black'))
+                dwg.add(svgwrite.shapes.Rect(insert=(x * box_size, y * box_size),
+                                              size=(box_size, box_size),
+                                              fill='black'))
 
     buf = io.BytesIO(dwg.tostring().encode())
     return send_file(buf, mimetype='image/svg+xml', as_attachment=True, download_name=f"{short_id}_glitchlink.svg")
