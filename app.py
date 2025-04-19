@@ -1,20 +1,22 @@
-from flask import Flask, request, redirect, render_template, session, send_file
+from flask import Flask, request, redirect, render_template, session, send_file, abort
 import qrcode
 import io
 import csv
 import gspread
-import svgwrite
-from datetime import datetime
 from oauth2client.service_account import ServiceAccountCredentials
+from datetime import datetime
+import os
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key_here'
 
+# User accounts
 USERS = {
     "Laurence2k": "qrtracker69",
     "Jack": "artoneggs"
 }
 
+# Google Sheets setup
 def get_sheet(name):
     scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
     creds_path = '/etc/secrets/google-credentials.json'
@@ -22,21 +24,28 @@ def get_sheet(name):
     client = gspread.authorize(creds)
     return client.open(name).sheet1
 
+# Helpers
 def load_redirects():
-    return get_sheet("QR Redirects").get_all_records()
+    sheet = get_sheet("QR Redirects")
+    return sheet.get_all_records()
 
 def load_logs():
-    return get_sheet("QR Scan Archive").get_all_records()
+    sheet = get_sheet("QR Scan Archive")
+    return sheet.get_all_records()
 
+# Routes
 @app.route('/')
 def home():
-    return redirect('/dashboard') if 'user' in session else redirect('/login')
+    if 'user' not in session:
+        return redirect('/login')
+    return redirect('/dashboard')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        user, pw = request.form['username'], request.form['password']
-        if USERS.get(user) == pw:
+        user = request.form['username']
+        pw = request.form['password']
+        if user in USERS and USERS[user] == pw:
             session['user'] = user
             return redirect('/dashboard')
         return render_template('login.html', error='Invalid credentials')
@@ -73,7 +82,9 @@ def add():
     short = request.form['short_id'].strip()
     dest = request.form['destination'].strip()
     user = session['user']
-    get_sheet("QR Redirects").append_row([short, dest, user])
+
+    sheet = get_sheet("QR Redirects")
+    sheet.append_row([short, dest, user])
     return redirect('/dashboard')
 
 @app.route('/edit', methods=['POST'])
@@ -86,7 +97,7 @@ def edit():
     sheet = get_sheet("QR Redirects")
     records = sheet.get_all_records()
     for i, row in enumerate(records, start=2):
-        if row['Short Code'] == short:
+        if row['Short Code'] == short and row['User'] == session['user']:
             sheet.update_cell(i, 2, new_url)
             break
     return redirect('/dashboard')
@@ -99,7 +110,7 @@ def delete(short_id):
     sheet = get_sheet("QR Redirects")
     records = sheet.get_all_records()
     for i, row in enumerate(records, start=2):
-        if row['Short Code'] == short_id:
+        if row['Short Code'] == short_id and row['User'] == session['user']:
             sheet.delete_rows(i)
             break
     return redirect('/dashboard')
@@ -115,50 +126,63 @@ def track():
     timestamp = datetime.utcnow().isoformat()
 
     redirect_sheet = get_sheet("QR Redirects")
-    match = next((row for row in redirect_sheet.get_all_records() if row['Short Code'] == short_id), None)
+    match = None
+    for row in redirect_sheet.get_all_records():
+        if row['Short Code'] == short_id:
+            match = row
+            break
 
     if not match:
         return "Invalid code", 404
 
-    get_sheet("QR Scan Archive").append_row([short_id, timestamp, ip, '', '', ua])
+    scan_sheet = get_sheet("QR Scan Archive")
+    scan_sheet.append_row([short_id, timestamp, ip, '', '', ua])
+
     return redirect(match['Destination'])
 
 @app.route('/view-qr/<short_id>')
 def view_qr(short_id):
     url = f"{request.host_url}track?id={short_id}"
     img = qrcode.make(url)
+    img = img.resize((1000, 1000))
     buf = io.BytesIO()
     img.save(buf)
     buf.seek(0)
     return send_file(buf, mimetype='image/png')
 
-@app.route('/download-png/<short_id>')
-def download_png(short_id):
+@app.route('/download-qr/<short_id>')
+def download_qr(short_id):
     url = f"{request.host_url}track?id={short_id}"
     img = qrcode.make(url)
+    img = img.resize((1000, 1000))
     buf = io.BytesIO()
     img.save(buf)
     buf.seek(0)
-    return send_file(buf, mimetype='image/png', as_attachment=True, download_name=f"{short_id}-glitchlink.png")
+    return send_file(buf, mimetype='image/png', as_attachment=True, download_name=f"{short_id}_glitchlink.png")
 
 @app.route('/download-svg/<short_id>')
 def download_svg(short_id):
+    try:
+        import svgwrite
+    except ImportError:
+        return "SVG support not installed", 500
+
     url = f"{request.host_url}track?id={short_id}"
     qr = qrcode.QRCode(box_size=10, border=4)
     qr.add_data(url)
     qr.make(fit=True)
     matrix = qr.get_matrix()
 
-    size = len(matrix) * 10
-    dwg = svgwrite.Drawing(size=(size, size), profile='tiny')
-    for y, row in enumerate(matrix):
-        for x, cell in enumerate(row):
-            if cell:
-                dwg.add(dwg.rect(insert=(x*10, y*10), size=(10, 10), fill='black'))
-    buf = io.BytesIO()
-    dwg.write(buf)
-    buf.seek(0)
-    return send_file(buf, mimetype='image/svg+xml', as_attachment=True, download_name=f"{short_id}-glitchlink.svg")
+    size = len(matrix)
+    box_size = 10
+    dwg = svgwrite.Drawing(size=(size * box_size, size * box_size))
+    for y in range(size):
+        for x in range(size):
+            if matrix[y][x]:
+                dwg.add(dwg.Rect(insert=(x * box_size, y * box_size), size=(box_size, box_size), fill='black'))
+
+    buf = io.BytesIO(dwg.tostring().encode())
+    return send_file(buf, mimetype='image/svg+xml', as_attachment=True, download_name=f"{short_id}_glitchlink.svg")
 
 @app.route('/export-csv')
 def export_csv():
@@ -175,14 +199,14 @@ def export_csv():
     writer.writerow(['Short Code', 'Timestamp', 'IP', 'City', 'Country', 'User Agent'])
     for row in filtered:
         writer.writerow([
-            row['Short Code'], row['Timestamp'], row['IP'],
-            row.get('City', ''), row.get('Country', ''), row['User Agent']
+            row['Short Code'], row['Timestamp'], row['IP'], row.get('City', ''),
+            row.get('Country', ''), row['User Agent']
         ])
     output.seek(0)
-    return send_file(io.BytesIO(output.getvalue().encode()), mimetype='text/csv', as_attachment=True, download_name='glitchlink-qr-logs.csv')
+    return send_file(io.BytesIO(output.getvalue().encode()), mimetype='text/csv', as_attachment=True, download_name=f"{user}_glitchlink_logs.csv")
 
 @app.errorhandler(404)
-def not_found(e):
+def page_not_found(e):
     return render_template("404.html"), 404
 
 if __name__ == '__main__':
