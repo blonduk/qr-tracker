@@ -6,3 +6,4 @@ oauth2client
 gunicorn
 Pillow
 svgwrite
+flask-socketio
