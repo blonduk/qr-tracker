@@ -1,3 +1,4 @@
+
 from flask import Flask, request, redirect, render_template, session, send_file, abort
 from flask_socketio import SocketIO, emit
 import qrcode
@@ -183,9 +184,9 @@ def track():
 
     # 🔔 Emit live scan event
     socketio.emit('scan_alert', {
-        'short_id': short_id,
-        'timestamp': timestamp
-    }, broadcast=True)
+    'short_id': short_id
+})
+
 
     return redirect(match['Destination'])
 
