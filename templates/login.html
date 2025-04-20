@@ -4,29 +4,29 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Glitch Link</title>
-  <link rel="icon" href="{{ url_for('static', filename='images/favicon.png') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-  <link rel="icon" href="{{ url_for('static', filename='images/404_glitch.png') }}">
+  <link rel="icon" href="{{ url_for('static', filename='images/favicon.png') }}">
 </head>
 
-
 <body>
-    <div class="glitch-title">Glitch Link</div>
-    <h2 class="subtitle">QR Code Generator and Tracker</h2>
+  <div class="glitch-title">Glitch Link</div>
+  <h2 class="subtitle">QR Code Generator and Tracker</h2>
 
-    <div class="login-container">
-        <form method="POST">
-            <input type="text" name="username" placeholder="Username" required autofocus>
-            <input type="password" name="password" placeholder="Password" required>
-            <button type="submit">Log In</button>
-        </form>
-        {% if error %}
-            <p class="error">{{ error }}</p>
-        {% endif %}
-    </div>
+  <img src="{{ url_for('static', filename='images/login.png') }}" alt="Login Art" style="width:400px; height:370px; margin: 20px auto; display: block;">
 
-    <footer>
-        <p>&copy; Glitch Link | {{ now.year if now else '2025' }}</p>
-    </footer>
+  <div class="login-container">
+    <form method="POST">
+      <input type="text" name="username" placeholder="Username" required autofocus>
+      <input type="password" name="password" placeholder="Password" required>
+      <button type="submit">Log In</button>
+    </form>
+    {% if error %}
+      <p class="error">{{ error }}</p>
+    {% endif %}
+  </div>
+
+  <footer>
+    <p>&copy; Glitch Link | {{ now.year if now else '2025' }}</p>
+  </footer>
 </body>
 </html>
