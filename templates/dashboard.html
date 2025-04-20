@@ -1,12 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Glitch Link</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <link rel="icon" href="{{ url_for('static', filename='images/favicon.png') }}">
-  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 </head>
 
 <body>
@@ -14,7 +13,7 @@
   <h2 class="subtitle">QR Code Generator and Tracker</h2>
   <a href="/logout" class="btn logout-btn">Logout</a>
   {% if user == 'Laurence2k' %}
-    <a href="/admin" class="btn link-white">Admin Panel</a>
+    <a href="/admin" class="btn" style="margin-left: 10px;">Admin Panel</a>
   {% endif %}
 
   <main class="centered-content">
@@ -57,38 +56,5 @@
   <footer>
     <p>&copy; {{ user }} | Glitch Link | {{ now.strftime('%Y') }}</p>
   </footer>
-
-  <!-- 🔔 Live Scan Toast -->
-  <div id="scan-toast" style="
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background: #ff00cc;
-    color: #fff;
-    padding: 12px 20px;
-    border-radius: 8px;
-    font-weight: bold;
-    font-family: 'Courier New', monospace;
-    box-shadow: 0 0 12px rgba(255, 0, 200, 0.4);
-    opacity: 0;
-    z-index: 9999;
-    transition: opacity 0.3s ease-in-out;
-  ">
-    QR Code Scanned!
-  </div>
-
-  <script>
-    const socket = io();
-    const toast = document.getElementById('scan-toast');
-
-    socket.on('scan_alert', function(data) {
-      toast.textContent = `🔔 QR Scanned: ${data.short_id}`;
-      toast.style.opacity = 1;
-
-      setTimeout(() => {
-        toast.style.opacity = 0;
-      }, 3000);
-    });
-  </script>
 </body>
 </html>
