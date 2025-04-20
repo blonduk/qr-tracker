@@ -1,6 +1,5 @@
-
 from flask import Flask, request, redirect, render_template, session, send_file, abort
-from flask_socketio import SocketIO, emit
+from flask_socketio import SocketIO
 import qrcode
 import io
 import csv
@@ -14,7 +13,7 @@ app = Flask(__name__)
 app.secret_key = 'your_secret_key_here'
 socketio = SocketIO(app)
 
-# In-memory user store (can be replaced with Google Sheet)
+# In-memory user store
 USERS = {
     "Laurence2k": "qrtracker69",
     "Jack": "artoneggs"
@@ -28,12 +27,10 @@ def get_sheet(name):
     return client.open(name).sheet1
 
 def load_redirects():
-    sheet = get_sheet("QR Redirects")
-    return sheet.get_all_records()
+    return get_sheet("QR Redirects").get_all_records()
 
 def load_logs():
-    sheet = get_sheet("QR Scan Archive")
-    return sheet.get_all_records()
+    return get_sheet("QR Scan Archive").get_all_records()
 
 @app.route('/')
 def home():
@@ -61,7 +58,6 @@ def logout():
 def dashboard():
     if 'user' not in session:
         return redirect('/login')
-
     user = session['user']
     redirects = [r for r in load_redirects() if r['User'] == user]
     logs = load_logs()
@@ -126,9 +122,7 @@ def add():
     short = request.form['short_id'].strip()
     dest = request.form['destination'].strip()
     user = session['user']
-
-    sheet = get_sheet("QR Redirects")
-    sheet.append_row([short, dest, user])
+    get_sheet("QR Redirects").append_row([short, dest, user])
     return redirect('/dashboard')
 
 @app.route('/edit', methods=['POST'])
@@ -170,23 +164,15 @@ def track():
     timestamp = datetime.utcnow().isoformat()
 
     redirect_sheet = get_sheet("QR Redirects")
-    match = None
-    for row in redirect_sheet.get_all_records():
-        if row['Short Code'] == short_id:
-            match = row
-            break
+    match = next((row for row in redirect_sheet.get_all_records() if row['Short Code'] == short_id), None)
 
     if not match:
         return "Invalid code", 404
 
-    scan_sheet = get_sheet("QR Scan Archive")
-    scan_sheet.append_row([short_id, timestamp, ip, '', '', ua])
+    get_sheet("QR Scan Archive").append_row([short_id, timestamp, ip, '', '', ua])
 
-    # 🔔 Emit live scan event
-    socketio.emit('scan_alert', {
-    'short_id': short_id
-})
-
+    # ✅ Emit scan alert
+    socketio.emit('scan_alert', {'short_id': short_id}, namespace='/')
 
     return redirect(match['Destination'])
 
@@ -224,9 +210,7 @@ def download_svg(short_id):
     for y in range(size):
         for x in range(size):
             if matrix[y][x]:
-                dwg.add(svgwrite.shapes.Rect(insert=(x * box_size, y * box_size),
-                                              size=(box_size, box_size),
-                                              fill='black'))
+                dwg.add(svgwrite.shapes.Rect(insert=(x * box_size, y * box_size), size=(box_size, box_size), fill='black'))
 
     buf = io.BytesIO(dwg.tostring().encode())
     return send_file(buf, mimetype='image/svg+xml', as_attachment=True, download_name=f"{short_id}_glitchlink.svg")
@@ -257,4 +241,4 @@ def page_not_found(e):
     return render_template("404.html"), 404
 
 if __name__ == '__main__':
-    socketio.run(app, debug=True)
+    socketio.run(app, host='0.0.0.0', port=10000)
