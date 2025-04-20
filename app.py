@@ -1,5 +1,4 @@
 from flask import Flask, request, redirect, render_template, session, send_file, abort
-from flask_socketio import SocketIO
 import qrcode
 import io
 import csv
@@ -11,14 +10,8 @@ import svgwrite
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key_here'
-socketio = SocketIO(app)
 
-# In-memory user store
-USERS = {
-    "Laurence2k": "qrtracker69",
-    "Jack": "artoneggs"
-}
-
+# Google Sheets setup
 def get_sheet(name):
     scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
     creds_path = '/etc/secrets/google-credentials.json'
@@ -26,12 +19,46 @@ def get_sheet(name):
     client = gspread.authorize(creds)
     return client.open(name).sheet1
 
+# Load data
 def load_redirects():
-    return get_sheet("QR Redirects").get_all_records()
+    sheet = get_sheet("QR Redirects")
+    return sheet.get_all_records()
 
 def load_logs():
-    return get_sheet("QR Scan Archive").get_all_records()
+    sheet = get_sheet("QR Scan Archive")
+    return sheet.get_all_records()
 
+# User management via Google Sheets
+USERS_SHEET = "QR Users"
+
+def get_users():
+    sheet = get_sheet(USERS_SHEET)
+    users_data = sheet.get_all_records()
+    return {row['Username']: row['Password'] for row in users_data}
+
+def add_user_to_sheet(username, password):
+    sheet = get_sheet(USERS_SHEET)
+    timestamp = datetime.utcnow().isoformat()
+    sheet.append_row([username, password, timestamp, timestamp])
+
+def update_user_password(username, new_password):
+    sheet = get_sheet(USERS_SHEET)
+    users = sheet.get_all_records()
+    for i, user in enumerate(users, start=2):
+        if user['Username'] == username:
+            sheet.update_cell(i, 2, new_password)
+            sheet.update_cell(i, 4, datetime.utcnow().isoformat())
+            break
+
+def delete_user_from_sheet(username):
+    sheet = get_sheet(USERS_SHEET)
+    users = sheet.get_all_records()
+    for i, user in enumerate(users, start=2):
+        if user['Username'] == username:
+            sheet.delete_rows(i)
+            break
+
+# Routes
 @app.route('/')
 def home():
     if 'user' not in session:
@@ -43,7 +70,8 @@ def login():
     if request.method == 'POST':
         user = request.form['username']
         pw = request.form['password']
-        if user in USERS and USERS[user] == pw:
+        users = get_users()
+        if user in users and users[user] == pw:
             session['user'] = user
             return redirect('/dashboard')
         return render_template('login.html', error='Invalid credentials')
@@ -61,36 +89,30 @@ def dashboard():
     user = session['user']
     redirects = [r for r in load_redirects() if r['User'] == user]
     logs = load_logs()
-
     stats = []
     for r in redirects:
         sid = r['Short Code']
         dest = r['Destination']
         count = sum(1 for log in logs if log['Short Code'] == sid)
         stats.append((sid, dest, count))
-
     return render_template('dashboard.html', stats=stats, user=user, now=datetime.utcnow())
 
 @app.route('/qr/<short_id>')
 def qr_detail(short_id):
     if 'user' not in session:
         return redirect('/login')
-
     user = session['user']
     redirect_rows = load_redirects()
     qr = next((r for r in redirect_rows if r['Short Code'] == short_id and r['User'] == user), None)
     if not qr:
         return "QR not found", 404
-
     logs = [l for l in load_logs() if l['Short Code'] == short_id]
-
     return render_template("qr-detail.html", qr=qr, logs=logs, now=datetime.utcnow())
 
 @app.route('/edit-detail', methods=['POST'])
 def edit_detail():
     if 'user' not in session:
         return redirect('/login')
-
     short = request.form['short_id'].strip()
     new_url = request.form['new_destination'].strip()
     sheet = get_sheet("QR Redirects")
@@ -105,7 +127,6 @@ def edit_detail():
 def delete_detail(short_id):
     if 'user' not in session:
         return redirect('/login')
-
     sheet = get_sheet("QR Redirects")
     records = sheet.get_all_records()
     for i, row in enumerate(records, start=2):
@@ -118,18 +139,17 @@ def delete_detail(short_id):
 def add():
     if 'user' not in session:
         return redirect('/login')
-
     short = request.form['short_id'].strip()
     dest = request.form['destination'].strip()
     user = session['user']
-    get_sheet("QR Redirects").append_row([short, dest, user])
+    sheet = get_sheet("QR Redirects")
+    sheet.append_row([short, dest, user])
     return redirect('/dashboard')
 
 @app.route('/edit', methods=['POST'])
 def edit():
     if 'user' not in session:
         return redirect('/login')
-
     short = request.form['short_id'].strip()
     new_url = request.form['new_destination'].strip()
     sheet = get_sheet("QR Redirects")
@@ -144,7 +164,6 @@ def edit():
 def delete(short_id):
     if 'user' not in session:
         return redirect('/login')
-
     sheet = get_sheet("QR Redirects")
     records = sheet.get_all_records()
     for i, row in enumerate(records, start=2):
@@ -158,22 +177,15 @@ def track():
     short_id = request.args.get('id')
     if not short_id:
         return "Missing ID", 400
-
     ip = request.remote_addr
     ua = request.headers.get('User-Agent', '')[:250]
     timestamp = datetime.utcnow().isoformat()
-
     redirect_sheet = get_sheet("QR Redirects")
     match = next((row for row in redirect_sheet.get_all_records() if row['Short Code'] == short_id), None)
-
     if not match:
         return "Invalid code", 404
-
-    get_sheet("QR Scan Archive").append_row([short_id, timestamp, ip, '', '', ua])
-
-    # ✅ Emit scan alert
-    socketio.emit('scan_alert', {'short_id': short_id}, namespace='/')
-
+    scan_sheet = get_sheet("QR Scan Archive")
+    scan_sheet.append_row([short_id, timestamp, ip, '', '', ua])
     return redirect(match['Destination'])
 
 @app.route('/view-qr/<short_id>')
@@ -203,15 +215,14 @@ def download_svg(short_id):
     qr.add_data(url)
     qr.make(fit=True)
     matrix = qr.get_matrix()
-
     size = len(matrix)
     box_size = 10
     dwg = svgwrite.Drawing(size=(size * box_size, size * box_size))
     for y in range(size):
         for x in range(size):
             if matrix[y][x]:
-                dwg.add(svgwrite.shapes.Rect(insert=(x * box_size, y * box_size), size=(box_size, box_size), fill='black'))
-
+                dwg.add(svgwrite.shapes.Rect(insert=(x * box_size, y * box_size),
+                                              size=(box_size, box_size), fill='black'))
     buf = io.BytesIO(dwg.tostring().encode())
     return send_file(buf, mimetype='image/svg+xml', as_attachment=True, download_name=f"{short_id}_glitchlink.svg")
 
@@ -219,12 +230,10 @@ def download_svg(short_id):
 def export_csv():
     if 'user' not in session:
         return redirect('/login')
-
     user = session['user']
     logs = load_logs()
     user_codes = [r['Short Code'] for r in load_redirects() if r['User'] == user]
     filtered = [log for log in logs if log['Short Code'] in user_codes]
-
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow(['Short Code', 'Timestamp', 'IP', 'City', 'Country', 'User Agent'])
@@ -236,9 +245,46 @@ def export_csv():
     output.seek(0)
     return send_file(io.BytesIO(output.getvalue().encode()), mimetype='text/csv', as_attachment=True, download_name=f"{user}_glitchlink_logs.csv")
 
+# Admin Panel
+@app.route('/admin')
+def admin_panel():
+    if 'user' not in session or session['user'] != 'Laurence2k':
+        return redirect('/dashboard')
+    users = get_users()
+    return render_template('admin.html', users=users, now=datetime.utcnow())
+
+@app.route('/admin/add-user', methods=['POST'])
+def admin_add_user():
+    if session.get('user') != 'Laurence2k':
+        abort(403)
+    username = request.form['username'].strip()
+    password = request.form['password'].strip()
+    users = get_users()
+    if username and password and username not in users:
+        add_user_to_sheet(username, password)
+    return redirect('/admin')
+
+@app.route('/admin/update-password', methods=['POST'])
+def admin_update_password():
+    if session.get('user') != 'Laurence2k':
+        abort(403)
+    username = request.form['username'].strip()
+    new_pw = request.form['new_password'].strip()
+    update_user_password(username, new_pw)
+    return redirect('/admin')
+
+@app.route('/admin/delete-user', methods=['POST'])
+def admin_delete_user():
+    if session.get('user') != 'Laurence2k':
+        abort(403)
+    username = request.form['username'].strip()
+    if username != 'Laurence2k':
+        delete_user_from_sheet(username)
+    return redirect('/admin')
+
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template("404.html"), 404
 
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=10000)
+    app.run(debug=True)
