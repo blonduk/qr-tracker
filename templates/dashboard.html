@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Glitch Link</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <link rel="icon" href="{{ url_for('static', filename='images/favicon.png') }}">
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 </head>
 
 <body>
@@ -13,7 +14,7 @@
   <h2 class="subtitle">QR Code Generator and Tracker</h2>
   <a href="/logout" class="btn logout-btn">Logout</a>
   {% if user == 'Laurence2k' %}
-    <a href="/admin" class="btn" style="margin-left: 10px;">Admin Panel</a>
+    <a href="/admin" class="btn link-white">Admin Panel</a>
   {% endif %}
 
   <main class="centered-content">
@@ -57,32 +58,36 @@
     <p>&copy; {{ user }} | Glitch Link | {{ now.strftime('%Y') }}</p>
   </footer>
 
-  <!-- Socket.IO Toast Alert Script -->
-  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+  <!-- 🔔 Live Scan Toast -->
+  <div id="scan-toast" style="
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #ff00cc;
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-family: 'Courier New', monospace;
+    box-shadow: 0 0 12px rgba(255, 0, 200, 0.4);
+    opacity: 0;
+    z-index: 9999;
+    transition: opacity 0.3s ease-in-out;
+  ">
+    QR Code Scanned!
+  </div>
+
   <script>
     const socket = io();
+    const toast = document.getElementById('scan-toast');
 
-    socket.on('connect', () => {
-      console.log('Connected to Socket.IO');
-    });
+    socket.on('scan_alert', function(data) {
+      toast.textContent = `🔔 QR Scanned: ${data.short_id}`;
+      toast.style.opacity = 1;
 
-    socket.on('scan_alert', (data) => {
-      const toast = document.createElement('div');
-      toast.innerText = `New scan: ${data.short_id}`;
-      toast.style.position = 'fixed';
-      toast.style.bottom = '20px';
-      toast.style.right = '20px';
-      toast.style.padding = '10px 20px';
-      toast.style.background = '#FF00CC';
-      toast.style.color = '#fff';
-      toast.style.fontWeight = 'bold';
-      toast.style.borderRadius = '6px';
-      toast.style.zIndex = '9999';
-      toast.style.boxShadow = '0 0 10px rgba(255,0,255,0.5)';
-      document.body.appendChild(toast);
       setTimeout(() => {
-        toast.remove();
-      }, 5000);
+        toast.style.opacity = 0;
+      }, 3000);
     });
   </script>
 </body>
