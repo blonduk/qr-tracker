@@ -26,9 +26,12 @@
       <button type="submit">Rename</button>
     </form>
 
-    <form action="/delete-detail/{{ qr['Short Code'] }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this QR code? This cannot be undone.')" style="margin-top: 10px;">
-      <button type="submit">Delete</button>
-    </form>
+    <div class="buttons-row" style="margin-top: 10px;">
+      <form action="/delete-detail/{{ qr['Short Code'] }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this QR code? This cannot be undone.')" style="display:inline-block;">
+        <button type="submit">Delete</button>
+      </form>
+      <a href="/dashboard" style="display:inline-block; margin-left: 12px;" class="btn">← Back to Dashboard</a>
+    </div>
 
     <h4 style="margin-top: 40px;">Scan Logs ({{ logs|length }})</h4>
     {% if logs %}
@@ -59,10 +62,6 @@
     {% else %}
       <p>No scans yet for this code.</p>
     {% endif %}
-
-    <div class="buttons-row" style="margin-top: 30px;">
-      <a href="/dashboard">← Back to Dashboard</a>
-    </div>
   </div>
 
   <footer>
